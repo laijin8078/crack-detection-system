@@ -16,4 +16,4 @@ if __name__ == '__main__':
     from torch.backends import cudnn
     print("Support cudnn?:",cudnn.is_acceptable(x))
 
-    #好了
+    #哈哈哈
