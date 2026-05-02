@@ -6,7 +6,7 @@ if __name__ == '__main__':
     x=x.cpu()
     print(x)
 
-    y=torch.randn(2,3)
+    y=torch.randn(3,3)
     y=y.cpu()
     print(y)
 
@@ -15,3 +15,5 @@ if __name__ == '__main__':
 
     from torch.backends import cudnn
     print("Support cudnn?:",cudnn.is_acceptable(x))
+
+    #测试一下
