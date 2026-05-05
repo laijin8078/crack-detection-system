@@ -59,5 +59,5 @@ class CNNNet(nn.Module):
 net = CNNNet()
 net = net.to(device)
 
-#查看网络结构111
+#查看网络结构111333
 print(net)
