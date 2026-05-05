@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk '{print \\(NF-2\\)/2}')",
+      "Bash(awk '{print \\(NF-1\\)/2}')",
+      "Bash(awk '{print $1}')",
+      "Bash(awk '{print $2}')",
+      "Bash(awk '{print $1, $2}')",
+      "Bash(awk '{sum+=$1} END {print \"Total annotations:\", sum}')",
+      "Bash(awk '{for\\(i=1;i<=10;i++\\) print i\": \"$i}')",
+      "Bash(awk '{print \"Line\", NR\": class=\"$1\", flag=\"$2\", points=\"\\(NF-2\\)/2}')",
+      "Bash(awk '{print NF}')",
+      "Bash(awk '{print \\(83-2\\)/2}')",
+      "Bash(pip list *)",
+      "Bash(pip install *)"
+    ]
+  }
+}

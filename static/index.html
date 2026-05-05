@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建筑裂缝检测系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-building"></i> 建筑裂缝检测系统
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#upload">上传检测</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#history">历史记录</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#statistics">统计分析</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="container mt-4">
+        <!-- 上传检测区域 -->
+        <div id="upload" class="section">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-upload"></i> 图像上传与检测</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                <p>点击或拖拽图像到此处</p>
+                                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="mt-3">
+                                <label>置信度阈值: <span id="confValue">0.25</span></label>
+                                <input type="range" class="form-range" id="confThreshold" min="0.1" max="0.9" step="0.05" value="0.25">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="previewArea" class="preview-area">
+                                <p class="text-muted">预览区域</p>
+                            </div>
+                            <button id="detectBtn" class="btn btn-success w-100 mt-3" disabled>
+                                <i class="fas fa-search"></i> 开始检测
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 检测结果 -->
+                    <div id="resultArea" class="mt-4" style="display: none;">
+                        <hr>
+                        <h6>检测结果</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div id="resultImage"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="resultDetails"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录区域 -->
+        <div id="history" class="section mt-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-history"></i> 检测历史记录</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>时间</th>
+                                    <th>图像名称</th>
+                                    <th>裂缝数量</th>
+                                    <th>平均置信度</th>
+                                    <th>处理时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable">
+                                <tr>
+                                    <td colspan="7" class="text-center">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计分析区域 -->
+        <div id="statistics" class="section mt-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="fas fa-chart-bar"></i> 统计分析</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h6>总检测图像</h6>
+                                <h3 id="totalImages">-</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h6>总裂缝数</h6>
+                                <h3 id="totalCracks">-</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h6>平均裂缝/图</h6>
+                                <h3 id="avgCracks">-</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h6>平均置信度</h6>
+                                <h3 id="avgConfidence">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <p>&copy; 2026 建筑裂缝检测系统 | 基于YOLOv8-seg</p>
+    </footer>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
