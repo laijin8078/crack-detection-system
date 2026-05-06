@@ -2,15 +2,15 @@
 hsv_h: 0.015  # 色调增强范围
 hsv_s: 0.7  # 饱和度增强范围
 hsv_v: 0.4  # 亮度增强范围
-degrees: 15.0  # 旋转角度范围 (-deg, +deg)
+degrees: 5.0  # 旋转角度范围 (-deg, +deg)
 translate: 0.1  # 平移范围 (图像尺寸的比例)
-scale: 0.5  # 缩放范围 (gain)
+scale: 0.3  # 缩放范围 (gain)
 shear: 0.0  # 剪切角度范围
 perspective: 0.0  # 透视变换范围
-flipud: 0.5  # 垂直翻转概率
+flipud: 0.0  # 垂直翻转概率
 fliplr: 0.5  # 水平翻转概率
-mosaic: 1.0  # Mosaic增强概率
-mixup: 0.1  # MixUp增强概率
+mosaic: 0.5  # Mosaic增强概率
+mixup: 0.0  # MixUp增强概率
 copy_paste: 0.0  # Copy-Paste增强概率
 
 # 验证配置
