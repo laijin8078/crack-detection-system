@@ -13,7 +13,7 @@ from ultralytics import YOLO
 import numpy as np
 
 
-def evaluate_model(model_path, data_yaml='data/crack-seg/data.yaml'):
+def evaluate_model(model_path, data_yaml='C:/Users/86158/Desktop/嵌入式A/模型/data/crack-seg/data.yaml'):
     """
     评估单个模型
 
@@ -34,18 +34,42 @@ def evaluate_model(model_path, data_yaml='data/crack-seg/data.yaml'):
     metrics = model.val(data=data_yaml, split='test')
 
     # 提取指标
+    def safe_mean(x):
+        """把 Ultralytics 返回的标量/数组安全转成 float 平均值"""
+        if x is None:
+            return 0.0
+
+        arr = np.asarray(x, dtype=float)
+
+        if arr.size == 0:
+            return 0.0
+
+        return float(np.nanmean(arr))
+
+    box_p = np.asarray(metrics.box.p, dtype=float)
+    box_r = np.asarray(metrics.box.r, dtype=float)
+    box_f1 = 2 * box_p * box_r / (box_p + box_r + 1e-6)
+
+    seg_p = np.asarray(metrics.seg.p, dtype=float)
+    seg_r = np.asarray(metrics.seg.r, dtype=float)
+    seg_f1 = 2 * seg_p * seg_r / (seg_p + seg_r + 1e-6)
+
     metrics_dict = {
         'model': Path(model_path).stem,
+
+        # Box metrics
         'box_map50': float(metrics.box.map50),
         'box_map': float(metrics.box.map),
-        'box_precision': float(metrics.box.p),
-        'box_recall': float(metrics.box.r),
-        'box_f1': float(2 * metrics.box.p * metrics.box.r / (metrics.box.p + metrics.box.r + 1e-6)),
+        'box_precision': safe_mean(box_p),
+        'box_recall': safe_mean(box_r),
+        'box_f1': safe_mean(box_f1),
+
+        # Segmentation metrics
         'seg_map50': float(metrics.seg.map50),
         'seg_map': float(metrics.seg.map),
-        'seg_precision': float(metrics.seg.p),
-        'seg_recall': float(metrics.seg.r),
-        'seg_f1': float(2 * metrics.seg.p * metrics.seg.r / (metrics.seg.p + metrics.seg.r + 1e-6))
+        'seg_precision': safe_mean(seg_p),
+        'seg_recall': safe_mean(seg_r),
+        'seg_f1': safe_mean(seg_f1),
     }
 
     # 打印指标

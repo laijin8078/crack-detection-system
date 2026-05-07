@@ -183,7 +183,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='建筑裂缝检测推理')
     parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best.pt',
                         help='模型权重路径')
-    parser.add_argument('--source', type=str, required=True,
+    parser.add_argument('--source', type=str,
+                        default=r'C:\Users\86158\Desktop\嵌入式A\测试图片',
                         help='图像路径或目录')
     parser.add_argument('--conf', type=float, default=0.25,
                         help='置信度阈值')
@@ -206,4 +207,5 @@ if __name__ == '__main__':
         conf_threshold=args.conf,
         iou_threshold=args.iou,
         save_json=args.save_json
+
     )
