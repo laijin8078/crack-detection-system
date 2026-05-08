@@ -2,7 +2,7 @@
 # 建筑裂缝检测项目
 
 # 模型配置
-model: yolov8m-seg.pt  # 预训练模型权重
+model: outputs/runs/crack_detection/weights/best.pt  # 已训练的最佳模型权重
 data: data/crack-seg/data.yaml  # 数据集配置文件
 
 # 训练参数
