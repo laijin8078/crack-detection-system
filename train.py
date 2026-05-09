@@ -80,7 +80,7 @@ def train_model(config_path='configs/train_config.yaml',
         model = YOLO(config['model'])
         print(f"加载预训练权重: {config['model']}")
 
-    # 开始训练
+    # 开始训练1
     print("\n" + "=" * 50)
     print(f"开始训练 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)

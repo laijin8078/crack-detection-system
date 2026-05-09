@@ -184,7 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best.pt',
                         help='模型权重路径')
     parser.add_argument('--source', type=str,
-                        default=r'C:\Users\86158\Desktop\嵌入式A\测试图片',
+                        default='测试图片',
                         help='图像路径或目录')
     parser.add_argument('--conf', type=float, default=0.15,
                         help='置信度阈值')

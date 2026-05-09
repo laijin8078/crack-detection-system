@@ -13,7 +13,7 @@ from ultralytics import YOLO
 import numpy as np
 
 
-def evaluate_model(model_path, data_yaml='C:/Users/86158/Desktop/嵌入式A/模型/data/crack-seg/data.yaml'):
+def evaluate_model(model_path, data_yaml='data/crack-seg/data.yaml'):
     """
     评估单个模型
 
