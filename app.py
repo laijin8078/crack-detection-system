@@ -85,7 +85,7 @@ async def root():
 @app.post("/api/detect")
 async def detect_crack(
     file: UploadFile = File(...),
-    conf_threshold: float = 0.25,
+    conf_threshold: float = 0.15,
     iou_threshold: float = 0.7
 ):
     """

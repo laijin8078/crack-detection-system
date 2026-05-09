@@ -1,14 +1,14 @@
-# YOLOv8s-seg 训练配置文件
+# YOLOv8m-seg 训练配置文件
 # 建筑裂缝检测项目
 
 # 模型配置
-model: outputs/runs/crack_detection/weights/best.pt  # 已训练的最佳模型权重
+model: yolov8m-seg.pt  # 使用更大的YOLOv8m-seg模型
 data: data/crack-seg/data.yaml  # 数据集配置文件
 
 # 训练参数
 epochs: 150  # 训练轮数
-batch: 8  # 批大小（根据GPU显存调整）
-imgsz: 640  # 输入图像尺寸
+batch: 4  # 批大小（根据GPU显存调整）
+imgsz: 960  # 输入图像尺寸（提高分辨率以改善分割精度）
 device: ''  # 设备：''=自动检测, 0=GPU0, cpu=CPU
 
 # 优化器配置

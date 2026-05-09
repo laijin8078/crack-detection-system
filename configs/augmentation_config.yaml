@@ -9,7 +9,7 @@ shear: 0.0  # 剪切角度范围
 perspective: 0.0  # 透视变换范围
 flipud: 0.0  # 垂直翻转概率
 fliplr: 0.5  # 水平翻转概率
-mosaic: 0.5  # Mosaic增强概率
+mosaic: 0.0  # Mosaic增强概率（关闭以保留裂缝细节）
 mixup: 0.0  # MixUp增强概率
 copy_paste: 0.0  # Copy-Paste增强概率
 

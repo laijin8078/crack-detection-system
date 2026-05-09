@@ -14,7 +14,7 @@ from ultralytics import YOLO
 from datetime import datetime
 
 
-def predict_image(model, image_path, conf_threshold=0.25, iou_threshold=0.7, save_results=True):
+def predict_image(model, image_path, conf_threshold=0.15, iou_threshold=0.7, save_results=True):
     """
     对单张图像进行推理
 
@@ -89,7 +89,7 @@ def predict_image(model, image_path, conf_threshold=0.25, iou_threshold=0.7, sav
     return detections
 
 
-def batch_predict(model, source_dir, conf_threshold=0.25, iou_threshold=0.7, save_json=True):
+def batch_predict(model, source_dir, conf_threshold=0.15, iou_threshold=0.7, save_json=True):
     """
     批量推理
 
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     parser.add_argument('--source', type=str,
                         default=r'C:\Users\86158\Desktop\嵌入式A\测试图片',
                         help='图像路径或目录')
-    parser.add_argument('--conf', type=float, default=0.25,
+    parser.add_argument('--conf', type=float, default=0.15,
                         help='置信度阈值')
     parser.add_argument('--iou', type=float, default=0.7,
                         help='NMS IoU阈值')

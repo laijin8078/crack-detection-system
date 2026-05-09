@@ -17,7 +17,7 @@ import numpy as np
 
 
 class CrackDetector:
-    def __init__(self, model_path, conf_threshold=0.25, iou_threshold=0.7):
+    def __init__(self, model_path, conf_threshold=0.15, iou_threshold=0.7):
         """
         初始化裂缝检测器
 
@@ -261,7 +261,7 @@ if __name__ == '__main__':
                         help='模型权重路径')
     parser.add_argument('--source', type=str, default='0',
                         help='输入源: 0=USB摄像头, rtsp://...=网络摄像头, 图像路径, 视频路径')
-    parser.add_argument('--conf', type=float, default=0.25,
+    parser.add_argument('--conf', type=float, default=0.15,
                         help='置信度阈值')
     parser.add_argument('--iou', type=float, default=0.7,
                         help='NMS IoU阈值')
