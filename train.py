@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 建筑裂缝检测 - 训练脚本
-使用YOLOv8s-seg模型进行实例分割训练
+使用YOLOv8m-seg模型进行实例分割训练
 支持CPU和GPU自动检测
 """
 
@@ -41,7 +41,7 @@ def train_model(config_path='configs/train_config.yaml',
                 aug_config_path='configs/augmentation_config.yaml',
                 resume=False):
     """
-    训练YOLOv8s-seg模型
+    训练YOLOv8m-seg模型
 
     Args:
         config_path: 训练配置文件路径
