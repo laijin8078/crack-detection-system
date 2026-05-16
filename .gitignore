@@ -45,6 +45,7 @@ env/
 Thumbs.db
 
 # Project specific
+runs/
 outputs/runs/
 outputs/weights/
 outputs/predictions/

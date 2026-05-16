@@ -7,6 +7,7 @@
 
 import torch
 import yaml
+import numpy as np
 from ultralytics import YOLO
 from pathlib import Path
 import argparse
@@ -73,8 +74,9 @@ def train_model(config_path='configs/train_config.yaml',
     print("\n初始化模型...")
     if resume:
         # 从上次中断处继续
-        model = YOLO('outputs/weights/last.pt')
-        print("从上次训练继续...")
+        last_pt = Path('runs/segment/outputs/runs/crack_detection/weights/last.pt')
+        model = YOLO(str(last_pt))
+        print(f"从上次训练继续...({last_pt})")
     else:
         # 加载预训练权重
         model = YOLO(config['model'])
@@ -134,16 +136,27 @@ def train_model(config_path='configs/train_config.yaml',
     print("\n在验证集上评估...")
     metrics = model.val()
 
+    def safe_mean(x):
+        """将 Ultralytics 返回的标量/数组安全转为 float 平均值"""
+        if x is None:
+            return 0.0
+        arr = np.asarray(x, dtype=float)
+        if arr.size == 0:
+            return 0.0
+        return float(np.nanmean(arr))
+
     # 打印关键指标
     print("\n" + "=" * 50)
     print("验证集性能指标")
     print("=" * 50)
     print(f"Box mAP@0.5: {metrics.box.map50:.4f}")
     print(f"Box mAP@0.5:0.95: {metrics.box.map:.4f}")
-    print(f"Precision: {metrics.box.p:.4f}")
-    print(f"Recall: {metrics.box.r:.4f}")
+    print(f"Box Precision: {safe_mean(metrics.box.p):.4f}")
+    print(f"Box Recall: {safe_mean(metrics.box.r):.4f}")
     print(f"Mask mAP@0.5: {metrics.seg.map50:.4f}")
     print(f"Mask mAP@0.5:0.95: {metrics.seg.map:.4f}")
+    print(f"Mask Precision: {safe_mean(metrics.seg.p):.4f}")
+    print(f"Mask Recall: {safe_mean(metrics.seg.r):.4f}")
     print("=" * 50)
 
     # 保存最终模型路径
