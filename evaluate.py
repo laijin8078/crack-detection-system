@@ -219,7 +219,7 @@ def plot_comparison(df, output_dir):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='评估建筑裂缝检测模型')
     parser.add_argument('--models', type=str, nargs='+',
-                        default=['outputs/runs/crack_detection/weights/best.pt'],
+                        default=['runs/segment/outputs/runs/crack_detection/weights/best.pt'],
                         help='模型权重路径列表')
     parser.add_argument('--data', type=str, default='data/crack-seg/data.yaml',
                         help='数据集配置文件')

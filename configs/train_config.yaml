@@ -1,14 +1,15 @@
-# YOLOv8m-seg 训练配置文件
+# YOLOv8s-seg 训练配置文件
 # 建筑裂缝检测项目
 
 # 模型配置
-model: yolov8m-seg.pt  # 使用更大的YOLOv8m-seg模型
+model: yolov8s-seg.pt  # YOLOv8s-seg模型
 data: data/crack-seg/data.yaml  # 数据集配置文件
 
 # 训练参数
-epochs: 150  # 训练轮数
-batch: 4  # 批大小（根据GPU显存调整）
+epochs: 300  # 训练轮数
+batch: 8  # 批大小（根据GPU显存调整）
 imgsz: 960  # 输入图像尺寸（提高分辨率以改善分割精度）
+multi_scale: 0.5  # 多尺度训练，每批随机±50%缩放
 device: ''  # 设备：''=自动检测, 0=GPU0, cpu=CPU
 
 # 优化器配置
@@ -16,15 +17,20 @@ optimizer: AdamW  # 优化器类型
 lr0: 0.001  # 初始学习率
 lrf: 0.01  # 最终学习率 (lr0 * lrf)
 momentum: 0.937  # SGD动量/Adam beta1
-weight_decay: 0.0005  # 权重衰减
+weight_decay: 0.001  # 权重衰减
 
 # 学习率调度
-warmup_epochs: 3  # 预热轮数
+warmup_epochs: 5  # 预热轮数
 warmup_momentum: 0.8  # 预热动量
 warmup_bias_lr: 0.1  # 预热偏置学习率
+cos_lr: true  # 余弦退火学习率调度
+dropout: 0.1  # Dropout正则化，防过拟合
+
+box: 7.5  # Box损失权重
+mask_ratio: 4  # Mask损失下采样比例
 
 # 早停和保存
-patience: 40  # 早停耐心值（验证集无改善的epoch数）
+patience: 80  # 早停耐心值（验证集无改善的epoch数）
 save: True  # 保存训练检查点
 save_period: 10  # 每N个epoch保存一次
 

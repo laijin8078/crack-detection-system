@@ -1,6 +1,6 @@
 task: segment
 mode: train
-model: yolov8m-seg.pt
+model: runs\segment\outputs\runs\crack_detection\weights\last.pt
 data: data/crack-seg/data.yaml
 epochs: 150
 time: null
