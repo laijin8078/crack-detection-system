@@ -181,7 +181,7 @@ def batch_predict(model, source_dir, conf_threshold=0.15, iou_threshold=0.7, sav
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='建筑裂缝检测推理')
-    parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best.pt',
+    parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best1.pt',
                         help='模型权重路径')
     parser.add_argument('--source', type=str,
                         default='测试图片',

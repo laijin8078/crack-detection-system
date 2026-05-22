@@ -63,7 +63,7 @@ python inference.py --source data/crack-seg/test/images/ --save-json
 ### 4.3 评估模型
 
 ```bash
-python evaluate.py --models outputs/runs/crack_detection/weights/best.pt --save
+python evaluate.py --models outputs/runs/crack_detection/weights/best1.pt --save
 ```
 
 ## 第五步：实时检测
@@ -123,7 +123,7 @@ python realtime_detect.py --source video.mp4
 ### 评估相关
 ```bash
 # 评估模型
-python evaluate.py --models best.pt --save
+python evaluate.py --models best1.pt --save
 
 # 对比模型
 python evaluate.py --models model1.pt model2.pt --save

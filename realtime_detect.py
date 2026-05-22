@@ -257,7 +257,7 @@ class CrackDetector:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='建筑裂缝实时检测')
-    parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best.pt',
+    parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best1.pt',
                         help='模型权重路径')
     parser.add_argument('--source', type=str, default='0',
                         help='输入源: 0=USB摄像头, rtsp://...=网络摄像头, 图像路径, 视频路径')

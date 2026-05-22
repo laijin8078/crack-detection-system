@@ -12,7 +12,9 @@
       "Bash(awk '{print NF}')",
       "Bash(awk '{print \\(83-2\\)/2}')",
       "Bash(pip list *)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(python -c \"import torch; print\\(f'PyTorch version: {torch.__version__}'\\); print\\(hasattr\\(torch.nn, 'PixelUnshuffle'\\)\\)\")",
+      "Bash(python -c ' *)"
     ]
   }
 }

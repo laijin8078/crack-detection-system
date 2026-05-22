@@ -108,7 +108,7 @@ tensorboard --logdir outputs/runs
 
 ```bash
 # 评估单个模型
-python evaluate.py --models outputs/runs/crack_detection/weights/best.pt --save
+python evaluate.py --models outputs/runs/crack_detection/weights/best1.pt --save
 
 # 对比多个模型
 python evaluate.py --models model1.pt model2.pt model3.pt --save
@@ -235,7 +235,7 @@ names:
 导出为ONNX格式：
 ```python
 from ultralytics import YOLO
-model = YOLO('best.pt')
+model = YOLO('best1.pt')
 model.export(format='onnx')
 ```
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 建筑裂缝检测 - 训练脚本
-使用YOLOv8m-seg模型进行实例分割训练
-支持CPU和GPU自动检测
+使用YOLOv8-seg模型进行实例分割训练
+支持CPU和GPU自动检测，支持SPD-Conv改进模型
 """
 
 import torch
@@ -40,14 +40,18 @@ def load_config(config_path):
 
 def train_model(config_path='configs/train_config.yaml',
                 aug_config_path='configs/augmentation_config.yaml',
-                resume=False):
+                resume=False,
+                model_path=None,
+                use_spd=False):
     """
-    训练YOLOv8m-seg模型
+    训练YOLOv8-seg模型
 
     Args:
         config_path: 训练配置文件路径
         aug_config_path: 数据增强配置文件路径
         resume: 是否从上次中断处继续训练
+        model_path: 覆盖配置文件中的模型路径
+        use_spd: 使用SPD-Conv改进的模型结构
     """
     # 检查环境
     check_environment()
@@ -59,6 +63,12 @@ def train_model(config_path='configs/train_config.yaml',
 
     # 合并配置
     config = {**train_config, **aug_config}
+
+    # 确定模型
+    if model_path:
+        config['model'] = model_path
+    elif use_spd:
+        config['model'] = 'ultralytics/ultralytics/cfg/models/v8/yolov8s-seg-spd.yaml'
 
     # 自动检测设备
     if config['device'] == '':
@@ -73,16 +83,20 @@ def train_model(config_path='configs/train_config.yaml',
     # 初始化模型
     print("\n初始化模型...")
     if resume:
-        # 从上次中断处继续
         last_pt = Path('runs/segment/outputs/runs/crack_detection/weights/last.pt')
         model = YOLO(str(last_pt))
         print(f"从上次训练继续...({last_pt})")
+    elif use_spd:
+        # 使用SPD-Conv结构，从预训练权重迁移
+        print("使用SPD-Conv改进模型结构...")
+        model = YOLO(config['model'])
+        print(f"模型结构已加载: {config['model']}")
     else:
         # 加载预训练权重
         model = YOLO(config['model'])
         print(f"加载预训练权重: {config['model']}")
 
-    # 开始训练1
+    # 开始训练
     print("\n" + "=" * 50)
     print(f"开始训练 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
@@ -165,7 +179,7 @@ def train_model(config_path='configs/train_config.yaml',
     print("=" * 50)
 
     # 保存最终模型路径
-    best_model_path = Path(results.save_dir) / 'weights' / 'best.pt'
+    best_model_path = Path(results.save_dir) / 'weights' / 'best1.pt'
     print(f"\n最佳模型保存在: {best_model_path}")
     print(f"训练日志保存在: {results.save_dir}")
 
@@ -178,6 +192,10 @@ if __name__ == '__main__':
                         help='训练配置文件路径')
     parser.add_argument('--aug-config', type=str, default='configs/augmentation_config.yaml',
                         help='数据增强配置文件路径')
+    parser.add_argument('--model', type=str, default=None,
+                        help='模型路径（覆盖配置文件中的设置）')
+    parser.add_argument('--spd', action='store_true',
+                        help='使用SPD-Conv改进的模型结构')
     parser.add_argument('--resume', action='store_true',
                         help='从上次中断处继续训练')
 
@@ -187,7 +205,9 @@ if __name__ == '__main__':
         results, metrics = train_model(
             config_path=args.config,
             aug_config_path=args.aug_config,
-            resume=args.resume
+            resume=args.resume,
+            model_path=args.model,
+            use_spd=args.spd
         )
         print("\n训练成功完成！")
     except Exception as e:
