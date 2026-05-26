@@ -1,0 +1,51 @@
+# 裂缝检测推理与后处理配置
+# 模型配置
+model:
+  name: "yolov8s-seg"
+  weights: "runs/segment/outputs/runs/crack_detection/weights/best.pt"
+  conf_threshold: 0.15
+  iou_threshold: 0.7
+
+# 后处理 - 裂缝特征提取
+postprocess:
+  min_area_px: 50          # 最小裂缝面积（像素），过滤噪声
+  mask_downsample_ratio: 4 # mask 降采样比例，加速计算
+
+# 视频跟踪参数
+tracker:
+  max_lost_frames: 10      # 丢失超过此帧数则移除 track
+  min_track_frames: 3      # 至少出现此帧数才视为有效 track（短时出现<3帧的目标可能被过滤）
+  bbox_iou_weight: 0.3     # bbox IoU 匹配权重
+  mask_iou_weight: 0.2     # mask IoU 匹配权重
+  center_dist_weight: 0.3  # 中心点距离匹配权重
+  orientation_weight: 0.2  # 方向角匹配权重
+  bbox_iou_threshold: 0.2  # bbox IoU 门控阈值
+  mask_iou_threshold: 0.1  # mask IoU 门控阈值
+  center_distance_threshold: 80  # 中心点距离门控阈值（像素）
+  angle_threshold: 30.0    # 方向角差异门控阈值（度）
+
+# 跨图去重参数
+dedup:
+  use_homography: true
+  use_skeleton_similarity: true
+  debug_dedup: false
+
+  # 同图内合并规则（更严格，防止不同裂缝被误合并）
+  same_image_merge:
+    enabled: true
+    min_skeleton_score: 0.75        # 同图骨架相似度阈值（更高）
+    min_mask_iou: 0.03              # 同图 mask IoU 最低要求
+    max_endpoint_distance: 50       # 同图端点最近距离（像素）上限
+    min_bbox_iou: 0.02              # 同图 bbox IoU 最低要求
+    require_endpoint_proximity: true # 同图合并必须端点靠近
+
+  # 跨图匹配规则（允许大偏移）
+  cross_image_merge:
+    min_final_score: 0.55           # 匹配得分阈值
+    allow_large_center_shift: true  # 允许大范围中心点偏移
+    max_angle_diff: 45.0            # 方向角差异门控（度）
+    center_weight: 0.1              # 中心点距离权重（弱特征）
+    angle_weight: 0.25              # 方向角权重
+    area_weight: 0.1                # 面积比权重
+    skeleton_weight: 0.45           # 骨架形态权重（主导）
+    mask_iou_weight: 0.1            # mask IoU 权重

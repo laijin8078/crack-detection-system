@@ -1,0 +1,6 @@
+{
+  "wall_id": "different_parallel_cracks_001",
+  "expected_min_unique_crack_count": 2,
+  "description": "反例测试：img_A 包含裂缝A，img_B 包含裂缝A（相同）和裂缝B（不同但方向相近），img_C 包含裂缝A的另一视角。同一图像内的裂缝A和裂缝B不应被合并（即使方向相近）。本测试集为合成样例（synthetic），通过拼接不同图像区域构造而成。",
+  "note": "synthetic case - cracks from different original images placed side by side in img_B"
+}

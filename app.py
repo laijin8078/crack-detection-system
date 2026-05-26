@@ -16,6 +16,8 @@ from ultralytics import YOLO
 from datetime import datetime
 import time
 from utils.database import CrackDatabase
+from utils.crack_postprocess import extract_crack_features
+from utils.crack_report import build_image_report
 import json
 
 # 创建FastAPI应用
@@ -125,49 +127,43 @@ async def detect_crack(
         # 计算处理时间
         processing_time = time.time() - start_time
 
-        # 提取检测结果
+        # 提取裂缝特征（使用后处理模块）
+        cracks = extract_crack_features(results, image.shape, min_area_px=50, mask_downsample_ratio=4)
+
+        # 兼容旧格式的 detections 列表（数据库存储用）
         detections = []
-        for r in results:
-            if r.boxes is None or len(r.boxes) == 0:
-                continue
+        for i, c in enumerate(cracks):
+            detection = {
+                'class': 'crack',
+                'class_id': 0,
+                'confidence': c['confidence'],
+                'bbox': {
+                    'x1': c['bbox_xyxy'][0],
+                    'y1': c['bbox_xyxy'][1],
+                    'x2': c['bbox_xyxy'][2],
+                    'y2': c['bbox_xyxy'][3],
+                },
+                'center': {
+                    'x': c['center_xy'][0],
+                    'y': c['center_xy'][1],
+                },
+                'size': {
+                    'width': round(c['bbox_xyxy'][2] - c['bbox_xyxy'][0], 2),
+                    'height': round(c['bbox_xyxy'][3] - c['bbox_xyxy'][1], 2),
+                },
+                'mask_polygon': c.get('mask_polygon'),
+                'area_px': c['area_px'],
+                'length_px_est': c['length_px_est'],
+                'orientation_angle': c['orientation_angle'],
+            }
+            detections.append(detection)
 
-            boxes = r.boxes
-            masks = r.masks
-
-            for i, box in enumerate(boxes):
-                xyxy = box.xyxy[0].cpu().numpy()
-                xywh = box.xywh[0].cpu().numpy()
-                conf = float(box.conf[0])
-                cls = int(box.cls[0])
-                class_name = r.names[cls]
-
-                mask_polygon = None
-                if masks is not None and i < len(masks):
-                    mask_xy = masks[i].xy[0]
-                    mask_polygon = mask_xy.tolist()
-
-                detection = {
-                    'class': class_name,
-                    'class_id': cls,
-                    'confidence': round(conf, 4),
-                    'bbox': {
-                        'x1': round(float(xyxy[0]), 2),
-                        'y1': round(float(xyxy[1]), 2),
-                        'x2': round(float(xyxy[2]), 2),
-                        'y2': round(float(xyxy[3]), 2)
-                    },
-                    'center': {
-                        'x': round(float(xywh[0]), 2),
-                        'y': round(float(xywh[1]), 2)
-                    },
-                    'size': {
-                        'width': round(float(xywh[2]), 2),
-                        'height': round(float(xywh[3]), 2)
-                    },
-                    'mask_polygon': mask_polygon
-                }
-
-                detections.append(detection)
+        # 构建结构化报告
+        report = build_image_report(
+            source_id=file.filename,
+            cracks=cracks,
+            model_name='yolov8s-seg',
+        )
 
         # 生成可视化图像
         annotated = results[0].plot()
@@ -196,8 +192,9 @@ async def detect_crack(
             'detection_id': detection_id,
             'timestamp': datetime.now().isoformat(),
             'processing_time': round(processing_time, 3),
-            'num_cracks': len(detections),
+            'num_cracks': len(cracks),
             'detections': detections,
+            'report': report,
             'result_image_url': f'/outputs/predictions/api/{result_filename}'
         }
 

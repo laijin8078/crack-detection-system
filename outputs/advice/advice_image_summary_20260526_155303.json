@@ -1,0 +1,22 @@
+{
+  "source_report": "outputs\\reports\\image_summary_20260526_155303.json",
+  "generated_at": "2026-05-26T15:53:45.245552",
+  "model_used": "deepseek-chat",
+  "overall_assessment": "[DRY RUN] 未实际调用 DeepSeek API",
+  "risk_level": "需人工复核",
+  "detected_summary": {
+    "raw_detection_count": 3,
+    "unique_crack_count": 3,
+    "duplicate_removed_count": 0
+  },
+  "possible_causes": [
+    "请设置 DEEPSEEK_API_KEY 后运行以获取完整建议"
+  ],
+  "repair_plan": [],
+  "materials": [],
+  "need_manual_review": true,
+  "manual_review_reason": "当前为 dry run 模式，未调用 DeepSeek API",
+  "limitations": [
+    "缺少尺度标定"
+  ]
+}

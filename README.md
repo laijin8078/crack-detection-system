@@ -1,286 +1,218 @@
 # 建筑裂缝检测深度学习系统
 
-基于YOLOv8-seg的建筑表面裂缝检测系统，实现裂缝的自动检测、位置标注和分类识别。
+基于 YOLOv8s-seg 的建筑表面裂缝检测系统，支持裂缝实例分割、视频跟踪去重、跨图去重、DeepSeek AI 维修建议生成。
 
 ## 功能特性
 
-- ✅ **裂缝检测**: 自动检测建筑表面裂缝
-- ✅ **位置标注**: 精确标注裂缝位置（边界框+分割掩码）
-- ✅ **类别识别**: 支持单类别和多类别裂缝识别
-- ✅ **实时检测**: 支持USB摄像头、网络摄像头、图像、视频等多种输入
-- ✅ **Web界面**: 提供友好的Web操作界面
-- ✅ **结果存储**: 自动保存检测结果到数据库
-- ✅ **报告生成**: 自动生成PDF检测报告
-- ✅ **统计分析**: 提供详细的统计图表
+- **裂缝检测**: YOLOv8s-seg 实例分割，输出 bbox + mask + 骨架 + 几何特征
+- **视频跟踪**: 轻量级 tracker，为连续帧中的同一条裂缝分配稳定 track_id
+- **跨图去重**: 基于骨架形态相似度的跨图像裂缝去重，区分同图/跨图匹配规则
+- **AI 维修建议**: 接入 DeepSeek API，根据检测结果自动生成结构化修补方案
+- **PDF 报告**: 一键生成排版精美的中英文维修建议 PDF 报告
+- **Web 服务**: FastAPI 后端，支持图像上传检测
+- **实时检测**: 支持 USB 摄像头、网络摄像头、视频文件
 
 ## 系统架构
 
 ```
-数据采集 → 模型推理 → 结果存储 → 报告生成 → Web展示
+墙面图像/视频 → YOLOv8s-seg 检测 → 后处理(骨架/跟踪/去重) → 检测 JSON
+                                                              ↓
+                                            DeepSeek API → 维修建议 JSON + PDF
 ```
-
-## 技术栈
-
-- **深度学习框架**: PyTorch, Ultralytics YOLOv8
-- **Web框架**: FastAPI
-- **前端**: HTML, CSS, JavaScript, Bootstrap
-- **数据库**: SQLite
-- **报告生成**: ReportLab
 
 ## 项目结构
 
 ```
 模型/
-├── data/                   # 数据集
-│   └── crack-seg/
-├── configs/                # 配置文件
-│   ├── train_config.yaml
-│   └── augmentation_config.yaml
-├── utils/                  # 工具模块
-│   ├── database.py
-│   └── report_generator.py
-├── database/               # 数据库
-│   ├── schema.sql
-│   └── crack_detection.db
-├── static/                 # Web前端
-│   ├── index.html
-│   ├── css/
-│   └── js/
-├── outputs/                # 输出结果
-│   ├── runs/              # 训练记录
-│   ├── weights/           # 模型权重
-│   ├── predictions/       # 预测结果
-│   └── reports/           # 生成的报告
-├── train.py               # 训练脚本
-├── evaluate.py            # 评估脚本
-├── inference.py           # 推理脚本
-├── realtime_detect.py     # 实时检测
-├── app.py                 # Web后台服务
-└── requirements.txt       # 依赖列表
+├── data/                    # 数据集
+│   └── crack-seg/           # 训练/验证/测试集 (YOLO 分割格式)
+├── configs/                 # 配置文件
+│   ├── train_config.yaml    # 训练参数
+│   ├── augmentation_config.yaml  # 数据增强
+│   └── inference_config.yaml     # 推理/跟踪/去重参数
+├── utils/                   # 核心模块
+│   ├── crack_postprocess.py # Mask 二值化、骨架提取、几何特征
+│   ├── crack_tracker.py     # 视频连续帧裂缝跟踪 (轻量级)
+│   ├── crack_dedup.py       # 跨图骨架形态去重 (v2)
+│   ├── crack_report.py      # 结构化 JSON 报告输出
+│   ├── deepseek_advisor.py  # DeepSeek API 维修建议生成
+│   ├── advice_pdf.py        # PDF 维修报告生成
+│   ├── database.py          # SQLite 检测记录存储
+│   └── report_generator.py  # PDF 检测报告生成
+├── docs/                    # 文档
+│   ├── crack_dedup_tracking_usage.md  # 去重/跟踪使用说明
+│   ├── dedup_optimization_notes.md    # 去重优化技术说明
+│   ├── deepseek_advice_usage.md       # DeepSeek 接入说明
+│   └── end_to_end_workflow.md         # 端到端流程
+├── tests/                   # 测试
+│   └── test_crack_dedup_regression.py # 去重回归测试
+├── test_cases/              # 测试用例
+│   ├── same_crack_sequence_001/       # 正例：同裂缝合并
+│   └── different_parallel_cracks_001/ # 反例：不同裂缝防误合并
+├── outputs/                 # 输出
+│   ├── reports/             # 检测 JSON 报告
+│   ├── advice/              # DeepSeek 建议 JSON + PDF
+│   ├── predictions/         # 标注图片
+│   └── runs/                # 训练记录
+├── train.py                 # 训练脚本
+├── evaluate.py              # 评估脚本
+├── inference.py             # 推理脚本（三种模式）
+├── realtime_detect.py       # 实时检测（摄像头/视频）
+├── generate_advice.py       # DeepSeek 建议生成 CLI
+├── app.py                   # FastAPI Web 服务
+└── requirements.txt         # 依赖
 ```
 
 ## 快速开始
 
-### 1. 环境安装
+### 1. 安装
 
 ```bash
-# 安装PyTorch（根据你的CUDA版本选择）
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-
-# 安装其他依赖
 pip install ultralytics
 pip install -r requirements.txt
 ```
 
-### 2. 数据准备
-
-数据集已准备在`data/crack-seg/`目录：
-- 训练集: 3717张图像
-- 验证集: 200张图像
-- 测试集: 112张图像
-- 格式: YOLO分割格式
-
-### 3. 模型训练
+### 2. 模型训练
 
 ```bash
-# 训练YOLOv8s-seg模型
 python train.py
-
-# 从上次中断处继续训练
-python train.py --resume
-
-# 使用自定义配置
-python train.py --config configs/train_config.yaml
+# 模型保存在 outputs/runs/crack_detection/weights/best.pt
 ```
 
-训练过程会自动：
-- 检测GPU/CPU环境
-- 记录训练指标（loss、mAP、Precision、Recall）
-- 保存最佳模型
-- 生成TensorBoard日志
+### 3. 推理检测
 
-查看训练日志：
 ```bash
-tensorboard --logdir outputs/runs
+# 单图检测
+python inference.py --source image.jpg --mode image
+
+# 视频跟踪（统计唯一裂缝数）
+python inference.py --source video.mp4 --mode video
+
+# 同一墙面多图去重（推荐）
+python inference.py --source ./wall_photos/ --mode image_sequence --wall-id 3F东墙
 ```
 
-### 4. 模型评估
+### 4. 一键检测 + AI 建议 + PDF
 
 ```bash
-# 评估单个模型
-python evaluate.py --models outputs/runs/crack_detection/weights/best1.pt --save
+# 配置 DeepSeek API Key
+set DEEPSEEK_API_KEY=sk-your-key-here
 
-# 对比多个模型
-python evaluate.py --models model1.pt model2.pt model3.pt --save
+# 一条命令完成全部
+python inference.py --source ./wall_photos/ --mode image_sequence \
+  --wall-id 3F东墙 --advice --advice-pdf --save-images
 ```
 
-### 5. 推理检测
+输出文件:
 
-**单张图像推理：**
-```bash
-python inference.py --source image.jpg --save-json
+```
+outputs/reports/dedup_3F东墙.json    # 检测报告
+outputs/advice/advice_dedup_3F东墙.json  # AI 建议
+outputs/advice/advice_dedup_3F东墙.pdf   # PDF 报告
+outputs/predictions/inference/*.jpg      # 标注图片
 ```
 
-**批量推理：**
-```bash
-python inference.py --source data/crack-seg/test/images/ --save-json
-```
+### 5. 实时检测
 
-### 6. 实时检测
-
-**USB摄像头：**
 ```bash
+# USB 摄像头（自动启用裂缝跟踪）
 python realtime_detect.py --source 0
-```
 
-**网络摄像头：**
-```bash
-python realtime_detect.py --source rtsp://192.168.1.100:554/stream
-```
-
-**视频文件：**
-```bash
+# 视频文件
 python realtime_detect.py --source video.mp4 --save-video
 ```
 
-**图像文件夹：**
-```bash
-python realtime_detect.py --source images/
-```
+### 6. Web 服务
 
-### 7. Web服务
-
-启动Web服务：
 ```bash
-# 开发环境
 uvicorn app:app --reload
-
-# 生产环境
-uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
+# 访问 http://localhost:8000/docs 查看 API 文档
 ```
 
-访问Web界面：
-```
-http://localhost:8000/static/index.html
-```
+## 三种推理模式
 
-API文档：
-```
-http://localhost:8000/docs
-```
+| 模式 | 场景 | 去重方式 | 关键输出 |
+|------|------|----------|----------|
+| `image` | 单张/批量图像 | 不做去重，单图统计 | `crack_id` |
+| `video` | 视频/摄像头连续帧 | 帧间 tracker，分配 `track_id` | `track_id`, `unique_crack_count` |
+| `image_sequence` | 同一墙面多角度图像 | 骨架形态 + 几何特征跨图去重 | `wall_id`, `is_duplicate`, `matched_with` |
 
-## API接口
+## 输出 JSON 核心字段
 
-### 检测接口
-```
-POST /api/detect
-Content-Type: multipart/form-data
-
-参数:
-- file: 图像文件
-- conf_threshold: 置信度阈值（默认0.25）
-- iou_threshold: NMS IoU阈值（默认0.7）
-
-返回:
+```json
 {
-  "success": true,
-  "detection_id": 1,
-  "num_cracks": 3,
-  "detections": [...],
-  "result_image_url": "/outputs/predictions/..."
+  "source_type": "image_sequence",
+  "wall_id": "3F东墙",
+  "summary": {
+    "raw_detection_count": 45,
+    "unique_crack_count": 12,
+    "duplicate_removed_count": 33
+  },
+  "cracks": [{
+    "crack_id": "C1",
+    "confidence": 0.82,
+    "bbox_xyxy": [120, 200, 380, 260],
+    "center_xy": [250, 230],
+    "area_px": 3614,
+    "length_px_est": 314.0,
+    "orientation_angle": 90.0,
+    "is_duplicate": true,
+    "matched_with": ["img_001.jpg", "img_003.jpg"]
+  }],
+  "limitations": ["缺少尺度标定，无法得到真实毫米级尺寸"]
 }
 ```
 
-### 历史记录
-```
-GET /api/detections?limit=10
-```
+## DeepSeek AI 维修建议
 
-### 统计信息
-```
-GET /api/statistics
-```
+配置 Key，检测完成自动生成：
 
-## 性能指标
-
-### 模型性能（YOLOv8s-seg）
-- **mAP@0.5**: 88-91%
-- **Precision**: 89-93%
-- **Recall**: 84-89%
-- **推理速度**: 35-50 FPS (RTX 3060)
-- **模型大小**: ~22MB
-
-### 系统要求
-- **GPU**: NVIDIA GPU with 6GB+ VRAM (推荐)
-- **CPU**: 支持CPU训练（速度较慢）
-- **内存**: 8GB+
-- **存储**: 10GB+
-
-## 扩展功能
-
-### 1. 多类别裂缝分类
-
-修改`data/crack-seg/data.yaml`：
-```yaml
-nc: 4
-names:
-  0: horizontal  # 横向裂缝
-  1: vertical    # 纵向裂缝
-  2: network     # 网状裂缝
-  3: diagonal    # 斜向裂缝
+```bash
+export DEEPSEEK_API_KEY="sk-your-key"
+python inference.py --source ./wall/ --mode image_sequence --wall-id test --advice --advice-pdf
 ```
 
-### 2. 模型加速
+DeepSeek 输出: 检测概况、风险等级、可能原因、分步修补方案、建议材料、是否需人工复核。
 
-导出为ONNX格式：
-```python
-from ultralytics import YOLO
-model = YOLO('best1.pt')
-model.export(format='onnx')
+详见 [`docs/deepseek_advice_usage.md`](docs/deepseek_advice_usage.md)
+
+## 回归测试
+
+```bash
+python tests/test_crack_dedup_regression.py
+# 预期: 2 PASS, 0 FAIL
 ```
 
-### 3. 报告生成
+## 跨图去重技术说明
 
-```python
-from utils.report_generator import generate_detection_report
-from utils.database import CrackDatabase
+v2 版本用骨架形态相似度替代中心点距离硬门控，解决了同一裂缝在不同角度拍摄时因位置偏移大而被误判为不同裂缝的问题。同图内通过端点距离和 mask 重叠防止不同裂缝误合并。
 
-db = CrackDatabase()
-report_path = generate_detection_report(detection_id=1, db=db)
-```
+详见 [`docs/dedup_optimization_notes.md`](docs/dedup_optimization_notes.md)
+
+## 性能指标 (YOLOv8s-seg)
+
+- mAP@0.5: 88-91%
+- 推理速度: 35-50 FPS (RTX 3060)
+- 模型大小: ~22MB
 
 ## 常见问题
 
-### Q: 训练时显存不足？
-A: 减小batch size，修改`configs/train_config.yaml`中的`batch`参数。
+**Q: 训练时显存不足？** 减小 `configs/train_config.yaml` 中的 `batch` 参数。
 
-### Q: 如何使用CPU训练？
-A: 训练脚本会自动检测，或在配置文件中设置`device: cpu`。
+**Q: 不同墙面图片放在一起导致过度合并？** 不同墙面应分目录存放，并分别指定 `--wall-id`。`image_sequence` 模式仅适合同一墙面。
 
-### Q: 如何提高检测精度？
-A: 
-1. 增加训练轮数
-2. 使用更大的模型（YOLOv8m）
-3. 调整数据增强参数
-4. 增加训练数据
+**Q: 未检测到 DEEPSEEK_API_KEY？** 运行前需配置环境变量: `set DEEPSEEK_API_KEY=sk-xxx` (Windows) 或 `export DEEPSEEK_API_KEY=sk-xxx` (Linux/Mac)。
 
-### Q: 实时检测FPS太低？
-A: 
-1. 使用更小的模型（YOLOv8n）
-2. 降低输入图像分辨率
-3. 使用GPU加速
-4. 导出为ONNX/TensorRT格式
+**Q: 实时检测 FPS 太低？** 使用更小的模型 (YOLOv8n-seg)，降低输入分辨率，或导出 ONNX/TensorRT。
+
+## 当前局限
+
+1. 裂缝尺寸为像素值，真实物理尺寸需尺度标定
+2. 跨图去重依赖 mask 质量，强透视变化建议后续接入 Homography
+3. 不同墙面图像必须通过 `wall_id` 分开，不能混入同一 `image_sequence`
+4. AI 建议不判断结构安全，仅供参考
 
 ## 许可证
 
 MIT License
-
-## 联系方式
-
-如有问题或建议，请提交Issue。
-
-## 致谢
-
-- [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
-- [PyTorch](https://pytorch.org/)
-- [FastAPI](https://fastapi.tiangolo.com/)
