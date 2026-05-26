@@ -14,6 +14,57 @@ from ultralytics import YOLO
 from datetime import datetime
 
 
+def _patch_spdconv():
+    """在运行时向已安装的 ultralytics 注入 SPDConv 模块"""
+    import torch.nn as nn
+    from ultralytics.nn.modules import conv as conv_module
+
+    if hasattr(conv_module, "SPDConv"):
+        return
+
+    class SPDConv(nn.Module):
+        def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):
+            super().__init__()
+            self.scale = s
+            self.conv = conv_module.Conv(c1 * (s**2), c2, k, 1, p, g, act=act)
+
+        def forward(self, x):
+            return self.conv(nn.PixelUnshuffle(self.scale)(x))
+
+    SPDConv.__module__ = "ultralytics.nn.modules.conv"
+    SPDConv.__qualname__ = "SPDConv"
+
+    conv_module.SPDConv = SPDConv
+    if "SPDConv" not in conv_module.__all__:
+        conv_module.__all__ = (*conv_module.__all__, "SPDConv")
+
+    import ultralytics.nn.modules as modules_pkg
+    modules_pkg.SPDConv = SPDConv
+    if "SPDConv" not in modules_pkg.__all__:
+        modules_pkg.__all__ = (*modules_pkg.__all__, "SPDConv")
+
+    import ultralytics.nn.tasks as tasks_module
+    tasks_module.SPDConv = SPDConv
+
+    import inspect, textwrap
+    source = inspect.getsource(tasks_module.parse_model)
+    source = textwrap.dedent(source)
+    patterns = [
+        ("SCDown,\n            C2fCIB,", "SCDown,\n            SPDConv,\n            C2fCIB,"),
+        ("SCDown,\n                C2fCIB,", "SCDown,\n                SPDConv,\n                C2fCIB,"),
+    ]
+    for old, new in patterns:
+        if old in source:
+            source = source.replace(old, new)
+            break
+    else:
+        raise RuntimeError("无法找到 base_modules 注入点，请检查 ultralytics 版本兼容性")
+    code = compile(source, tasks_module.__file__, "exec")
+    ns = dict(tasks_module.__dict__)
+    exec(code, ns)
+    tasks_module.parse_model = ns["parse_model"]
+
+
 def predict_image(model, image_path, conf_threshold=0.15, iou_threshold=0.7, save_results=True):
     """
     对单张图像进行推理
@@ -181,7 +232,8 @@ def batch_predict(model, source_dir, conf_threshold=0.15, iou_threshold=0.7, sav
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='建筑裂缝检测推理')
-    parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best1.pt',
+    parser.add_argument('--model', type=str,
+                        default='runs/segment/outputs/runs/crack_detection/weights/best.pt',
                         help='模型权重路径')
     parser.add_argument('--source', type=str,
                         default='测试图片',
@@ -197,8 +249,14 @@ if __name__ == '__main__':
 
     # 加载模型
     print("加载模型...")
-    model = YOLO(args.model)
-    print(f"模型加载成功: {args.model}")
+    model_path = Path(args.model)
+    if not model_path.exists():
+        print(f"错误: 模型文件不存在: {model_path}")
+        print("请指定正确的模型路径，例如: python inference.py --model runs/segment/.../best.pt")
+        exit(1)
+    _patch_spdconv()
+    model = YOLO(str(model_path))
+    print(f"模型加载成功: {model_path}")
 
     # 推理
     batch_predict(

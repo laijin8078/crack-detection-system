@@ -14,6 +14,71 @@ import argparse
 from datetime import datetime
 
 
+def _patch_spdconv():
+    """在运行时向已安装的 ultralytics 注入 SPDConv 模块"""
+    import torch.nn as nn
+    from ultralytics.nn.modules import conv as conv_module
+
+    if hasattr(conv_module, "SPDConv"):
+        return
+
+    class SPDConv(nn.Module):
+        """Space-to-Depth Convolution module."""
+
+        def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):
+            super().__init__()
+            self.scale = s
+            self.conv = conv_module.Conv(c1 * (s**2), c2, k, 1, p, g, act=act)
+
+        def forward(self, x):
+            return self.conv(nn.PixelUnshuffle(self.scale)(x))
+
+    # 让 pickle 能找到 SPDConv：伪装成来自 ultralytics.nn.modules.conv
+    SPDConv.__module__ = "ultralytics.nn.modules.conv"
+    SPDConv.__qualname__ = "SPDConv"
+
+    # 注入到 conv 模块
+    conv_module.SPDConv = SPDConv
+    if "SPDConv" not in conv_module.__all__:
+        conv_module.__all__ = (*conv_module.__all__, "SPDConv")
+
+    # 注入到 nn.modules 包
+    import ultralytics.nn.modules as modules_pkg
+    modules_pkg.SPDConv = SPDConv
+    if "SPDConv" not in modules_pkg.__all__:
+        modules_pkg.__all__ = (*modules_pkg.__all__, "SPDConv")
+
+    # 注入到 tasks 模块（YAML 解析器通过 globals()[m] 查找）
+    import ultralytics.nn.tasks as tasks_module
+    tasks_module.SPDConv = SPDConv
+
+    # 重定义 parse_model，在 base_modules 中加入 SPDConv
+    import inspect
+    import textwrap
+    source = inspect.getsource(tasks_module.parse_model)
+    source = textwrap.dedent(source)
+
+    # 尝试在 base_modules frozenset 里加入 SPDConv
+    patterns = [
+        ("SCDown,\n            C2fCIB,", "SCDown,\n            SPDConv,\n            C2fCIB,"),
+        ("SCDown,\n                C2fCIB,", "SCDown,\n                SPDConv,\n                C2fCIB,"),
+    ]
+    patched = False
+    for old, new in patterns:
+        if old in source:
+            source = source.replace(old, new)
+            patched = True
+            break
+
+    if not patched:
+        raise RuntimeError("无法找到 base_modules 注入点，请检查 ultralytics 版本兼容性")
+
+    code = compile(source, tasks_module.__file__, "exec")
+    ns = dict(tasks_module.__dict__)
+    exec(code, ns)
+    tasks_module.parse_model = ns["parse_model"]
+
+
 def check_environment():
     """检查训练环境"""
     print("=" * 50)
@@ -87,8 +152,9 @@ def train_model(config_path='configs/train_config.yaml',
         model = YOLO(str(last_pt))
         print(f"从上次训练继续...({last_pt})")
     elif use_spd:
-        # 使用SPD-Conv结构，从预训练权重迁移
+        # 注入 SPDConv 到已安装的 ultralytics
         print("使用SPD-Conv改进模型结构...")
+        _patch_spdconv()
         model = YOLO(config['model'])
         print(f"模型结构已加载: {config['model']}")
     else:
