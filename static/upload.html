@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>墙面裂缝批量检测</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Microsoft YaHei, SimHei, sans-serif; background: #f0f2f5; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; padding: 24px; text-align: center; }
+        .header h1 { font-size: 22px; }
+        .header p { font-size: 13px; opacity: 0.7; margin-top: 6px; }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+        .card { background: #fff; border-radius: 8px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card h2 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; border-left: 3px solid #e74c3c; padding-left: 10px; }
+        .row { margin-bottom: 14px; }
+        .row label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: bold; }
+        input[type="file"] { width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 6px; cursor: pointer; }
+        input[type="file"]:hover { border-color: #e74c3c; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .btn { display: inline-block; padding: 12px 40px; font-size: 15px; border: none; border-radius: 6px; cursor: pointer; color: #fff; margin-right: 10px; }
+        .btn-primary { background: #e74c3c; }
+        .btn-primary:hover { background: #c0392b; }
+        .btn-primary:disabled { background: #bbb; cursor: not-allowed; }
+        .btn-outline { background: #fff; color: #e74c3c; border: 1px solid #e74c3c; }
+        .progress-bar { height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden; margin: 12px 0; display: none; }
+        .progress-fill { height: 100%; background: #27ae60; transition: width 0.3s; border-radius: 6px; width: 0%; }
+        .status { font-size: 13px; color: #888; margin-top: 6px; }
+        .result-box { font-size: 13px; background: #f8f9fa; border-radius: 6px; padding: 16px; max-height: 400px; overflow-y: auto; display: none; white-space: pre-wrap; font-family: Consolas, monospace; }
+        .summary-cards { display: flex; gap: 16px; margin-bottom: 16px; display: none; }
+        .summary-card { flex: 1; text-align: center; padding: 16px; border-radius: 8px; background: #f8f9fa; }
+        .summary-card .num { font-size: 28px; font-weight: bold; color: #1a1a2e; }
+        .summary-card .lbl { font-size: 12px; color: #888; margin-top: 4px; }
+        .image-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; display: none; }
+        .image-grid img { max-width: 260px; max-height: 200px; border-radius: 6px; border: 2px solid #eee; cursor: pointer; }
+        .advice-box { background: #fff8e1; border-left: 3px solid #f39c12; padding: 16px; margin-top: 16px; border-radius: 0 6px 6px 0; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>墙面裂缝智能检测系统</h1>
+    <p>上传同一墙面多角度图像 → YOLOv8s-seg 检测 → 跨图去重 → DeepSeek AI 维修建议</p>
+</div>
+
+<div class="container">
+
+    <div class="card">
+        <h2>第一步：选择图片</h2>
+        <div class="row">
+            <label>墙面图像（可多选，Ctrl+A 全选，限同一面墙）</label>
+            <input type="file" id="filesInput" accept="image/*" multiple>
+        </div>
+        <div class="row">
+            <label>墙面标识（如 "3楼东墙"）</label>
+            <input type="text" id="wallIdInput" value="test_wall" placeholder="给这面墙起个名字">
+        </div>
+        <div id="fileCount" class="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>第二步：开始检测</h2>
+        <button class="btn btn-primary" id="startBtn" disabled>开始检测</button>
+        <button class="btn btn-outline" onclick="location.reload()">重置</button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div id="progressText" class="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>检测结果</h2>
+        <div class="summary-cards" id="summaryCards">
+            <div class="summary-card"><div class="num" id="rawCount">-</div><div class="lbl">原始检测数</div></div>
+            <div class="summary-card"><div class="num" id="uniqueCount">-</div><div class="lbl">去重后唯一裂缝</div></div>
+            <div class="summary-card"><div class="num" id="removedCount">-</div><div class="lbl">已去除重复</div></div>
+        </div>
+        <div class="image-grid" id="imageGrid"></div>
+        <div class="advice-box" id="adviceBox"></div>
+        <div class="result-box" id="resultBox"></div>
+    </div>
+</div>
+
+<script>
+const filesInput = document.getElementById('filesInput');
+const startBtn = document.getElementById('startBtn');
+const fileCount = document.getElementById('fileCount');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const summaryCards = document.getElementById('summaryCards');
+const imageGrid = document.getElementById('imageGrid');
+const adviceBox = document.getElementById('adviceBox');
+const resultBox = document.getElementById('resultBox');
+
+filesInput.addEventListener('change', () => {
+    const n = filesInput.files.length;
+    fileCount.textContent = n > 0 ? `已选择 ${n} 张图片` : '';
+    startBtn.disabled = n === 0;
+});
+
+startBtn.addEventListener('click', async () => {
+    const files = filesInput.files;
+    if (files.length === 0) return alert('请先选择图片');
+
+    const form = new FormData();
+    for (const f of files) {
+        form.append('files', f);
+    }
+    form.append('wall_id', document.getElementById('wallIdInput').value || 'default');
+
+    startBtn.disabled = true;
+    startBtn.textContent = '检测中...';
+    progressBar.style.display = 'block';
+    summaryCards.style.display = 'none';
+    imageGrid.style.display = 'none';
+    adviceBox.style.display = 'none';
+    resultBox.style.display = 'none';
+    imageGrid.innerHTML = '';
+    let rawCount = 0, uniqueCount = 0, removedCount = 0;
+
+    try {
+        const resp = await fetch('/api/detect-sequence', { method: 'POST', body: form });
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, {stream: true});
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const event = JSON.parse(line.slice(6));
+                    if (event['事件'] === '检测进度') {
+                        const pct = Math.round((event['当前'] / event['总数']) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = `正在检测: ${event['当前']}/${event['总数']} — ${event['图片']}`;
+                    } else if (event['事件'] === '去重完成') {
+                        rawCount = event['原始检测数'];
+                        uniqueCount = event['唯一裂缝数'];
+                        removedCount = event['去除重复数'];
+                        progressText.textContent = '去重完成，正在生成AI建议...';
+                    } else if (event['事件'] === 'AI建议') {
+                        progressText.textContent = `AI建议已生成，风险等级: ${event['风险等级']}`;
+                    } else if (event['事件'] === '完成') {
+                        progressFill.style.width = '100%';
+                        progressText.textContent = '检测完成！';
+
+                        // 显示汇总
+                        document.getElementById('rawCount').textContent = event['检测汇总']['原始检测总数'];
+                        document.getElementById('uniqueCount').textContent = event['检测汇总']['去重后唯一裂缝数'];
+                        document.getElementById('removedCount').textContent = event['检测汇总']['已去除重复数'];
+                        summaryCards.style.display = 'flex';
+
+                        // 显示代表图
+                        if (event['代表标注图'] && event['代表标注图'].length > 0) {
+                            imageGrid.style.display = 'flex';
+                            for (const url of event['代表标注图']) {
+                                const img = document.createElement('img');
+                                img.src = url;
+                                img.title = '点击查看大图';
+                                img.onclick = () => window.open(url);
+                                imageGrid.appendChild(img);
+                            }
+                        }
+
+                        // 显示 AI 建议
+                        if (event['AI维修建议']) {
+                            const a = event['AI维修建议'];
+                            adviceBox.style.display = 'block';
+                            adviceBox.innerHTML = `
+                                <b>风险等级：${a.risk_level || '未知'}</b><br><br>
+                                ${a.overall_assessment || ''}<br><br>
+                                <b>可能原因：</b><br>${(a.possible_causes||[]).map(c => '· ' + c).join('<br>')}<br><br>
+                                <b>修补方案：</b><br>${(a.repair_plan||[]).map(s => `步骤${s.step}: ${s.title} — ${s.description}`).join('<br>')}<br><br>
+                                <b>建议材料：</b>${(a.materials||[]).join('、')}<br><br>
+                                <b>需人工复核：</b>${a.need_manual_review ? '是 — ' + (a.manual_review_reason||'') : '否'}
+                            `;
+                        }
+
+                        resultBox.textContent = JSON.stringify(event, null, 2);
+                        resultBox.style.display = 'block';
+                    }
+                } catch(e) {}
+            }
+        }
+    } catch (e) {
+        progressText.textContent = '错误: ' + e.message;
+    } finally {
+        startBtn.disabled = false;
+        startBtn.textContent = '开始检测';
+    }
+});
+</script>
+</body>
+</html>

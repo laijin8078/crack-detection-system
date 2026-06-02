@@ -1,0 +1,50 @@
+{
+  "source_report": "C:\\Users\\86158\\Desktop\\嵌入式A\\模型\\results\\reports\\summary_3F东墙_20260529_143210.json",
+  "generated_at": "2026-05-29T14:32:17.069454",
+  "model_used": "deepseek-chat",
+  "overall_assessment": "本次检测在3F东墙共识别到1条唯一裂缝（C1），原始检测45次中有44次为重复检测，整体平均置信度为38.62%。裂缝像素面积约13861px²，像素长度约775px，方向角约129°。由于缺少尺度标定，无法获取真实毫米级尺寸，但裂缝像素面积较大，建议关注其发展情况。",
+  "risk_level": "轻微",
+  "detected_summary": {
+    "raw_detection_count": 45,
+    "unique_crack_count": 1,
+    "duplicate_removed_count": 44
+  },
+  "possible_causes": [
+    "墙面基层材料收缩或温度变化引起的表面裂缝",
+    "施工时抹灰层或腻子层处理不当"
+  ],
+  "repair_plan": [
+    {
+      "step": 1,
+      "title": "清理裂缝区域",
+      "description": "使用刷子或吸尘器清除裂缝及其周边的灰尘、松散颗粒，确保表面干净干燥。"
+    },
+    {
+      "step": 2,
+      "title": "填充裂缝",
+      "description": "选用弹性填缝胶或墙面修补膏，用刮刀将材料填入裂缝中，确保填满并略高于墙面。"
+    },
+    {
+      "step": 3,
+      "title": "打磨平整",
+      "description": "待填充材料完全干燥后（通常24小时），用细砂纸轻轻打磨至与墙面齐平。"
+    },
+    {
+      "step": 4,
+      "title": "涂刷面漆",
+      "description": "在修补区域涂刷与原墙面颜色一致的乳胶漆，建议涂刷两遍以保持均匀。"
+    }
+  ],
+  "materials": [
+    "弹性填缝胶或墙面修补膏",
+    "细砂纸（400目以上）",
+    "乳胶漆（与原墙面颜色匹配）"
+  ],
+  "need_manual_review": true,
+  "manual_review_reason": "无需",
+  "limitations": [
+    "检测结果基于像素尺寸，缺少尺度标定，无法获得真实毫米级裂缝宽度和长度",
+    "整体平均置信度较低（38.62%），可能存在误检或漏检风险",
+    "仅依赖单一图像检测，未结合现场目视复核"
+  ]
+}

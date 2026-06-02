@@ -65,7 +65,26 @@
       "Bash(python inference.py --source test_cases/same_crack_sequence_001 --mode image_sequence --wall-id t1 --debug-dedup --no-save)",
       "Bash(python inference.py --source test_cases/different_parallel_cracks_001 --mode image_sequence --wall-id t2 --debug-dedup --no-save)",
       "Bash(python inference.py --source test_cases/different_parallel_cracks_001 --mode image_sequence --wall-id t2 --debug-dedup)",
-      "Bash(python tests/test_crack_dedup_regression.py --verbose)"
+      "Bash(python tests/test_crack_dedup_regression.py --verbose)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app.py', doraise=True\\); print\\('OK'\\)\")",
+      "Bash(python app.py)",
+      "Bash(curl -s -N -X POST http://localhost:8000/api/detect-sequence -F files=@test_cases/same_crack_sequence_001/img_01.jpg -F files=@test_cases/same_crack_sequence_001/img_02.jpg -F files=@test_cases/same_crack_sequence_001/img_03.jpg -F wall_id=same_crack_test)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(pkill -f \"uvicorn app:app\")",
+      "Bash(pkill -f \"python app.py\")",
+      "Bash(curl -s http://localhost:8000/docs)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8000)",
+      "Bash(tasklist)",
+      "Bash(findstr python *)",
+      "Bash(taskkill //PID 39808 //F)",
+      "Bash(curl -s http://localhost:8000/api/detect-sequence)",
+      "Bash(curl -s -N -X POST http://localhost:8000/api/detect-sequence -F files=@test_cases/same_crack_sequence_001/img_01.jpg -F files=@test_cases/same_crack_sequence_001/img_02.jpg -F files=@test_cases/same_crack_sequence_001/img_03.jpg -F wall_id=same_crack_api_test)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app.py', doraise=True\\); print\\('编译通过'\\)\")",
+      "Bash(curl -s http://localhost:8000/openapi.json)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('接口数量:', len\\(d['paths']\\)\\); [print\\(f'  {m.upper\\(\\):7} {p} - {i.get\\(\\\\\"summary\\\\\",\\\\\"\\\\\"\\)}'\\) for p in d['paths'] for m,i in d['paths'][p].items\\(\\)]\")",
+      "Bash(curl -s http://localhost:8000/openapi.json -o /tmp/openapi.json)",
+      "Bash(curl -s -X POST http://localhost:8000/api/detect -F \"file=@test_cases/same_crack_sequence_001/img_01.jpg\")"
     ]
   }
 }

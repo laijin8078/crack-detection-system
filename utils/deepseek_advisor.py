@@ -45,6 +45,27 @@ def extract_detection_context(report):
       1. 单报告格式：直接包含 source_type / summary / cracks（video / image_sequence / 单图 image）
       2. 批量汇总格式：包含 per_image 列表（image 模式批量推理输出）
     """
+    # 处理汇总报告格式（pipeline 生成的 summary_xxx.json，包含 all_cracks）
+    if "all_cracks" in report:
+        all_cracks = report.get("all_cracks", [])
+        total_raw = report.get("total_raw_detections", 0)
+        total_unique = report.get("total_unique_cracks", 0)
+        confs = [c.get("confidence", 0) for c in all_cracks if c.get("confidence")]
+        context = {
+            "source_type": "image_sequence",
+            "wall_id": report.get("wall_id"),
+            "image_or_video_id": report.get("title", ""),
+            "summary": {
+                "raw_detection_count": total_raw,
+                "unique_crack_count": total_unique,
+                "duplicate_removed_count": total_raw - total_unique,
+                "overall_confidence": round(sum(confs) / len(confs), 4) if confs else 0,
+            },
+            "cracks": all_cracks,
+            "limitations": [],
+        }
+        return context
+
     # 处理批量汇总格式（image 模式的 batch 输出）
     if "per_image" in report and isinstance(report.get("per_image"), list):
         per_image = report["per_image"]
@@ -245,7 +266,7 @@ def call_deepseek(api_key, system_prompt, user_prompt, temperature=0.3, max_toke
         "max_tokens": max_tokens,
     }
 
-    resp = requests.post(DEEPSEEK_API_URL, json=payload, headers=headers, timeout=120)
+    resp = requests.post(DEEPSEEK_API_URL, json=payload, headers=headers, timeout=15)
     if resp.status_code != 200:
         raise RuntimeError(
             f"DeepSeek API 返回错误 (HTTP {resp.status_code}): {resp.text[:500]}"
