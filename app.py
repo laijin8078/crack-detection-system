@@ -17,7 +17,7 @@ from datetime import datetime
 import time
 import asyncio
 from utils.database import CrackDatabase
-from utils.crack_postprocess import extract_crack_features
+from utils.crack_postprocess import extract_crack_features, filter_results_by_class
 from utils.crack_report import build_image_report, build_dedup_report
 from utils.crack_dedup import deduplicate_cracks
 from utils.deepseek_advisor import generate_advice
@@ -99,7 +99,7 @@ async def 健康检查():
 @app.post("/api/detect", tags=["裂缝检测"], summary="单张图像裂缝检测")
 async def 单帧裂缝检测(
     file: UploadFile = File(..., description="墙面图像文件（jpg/png）"),
-    conf_threshold: float = 0.15,
+    conf_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ):
     """
@@ -125,7 +125,9 @@ async def 单帧裂缝检测(
         results = model.predict(source=image, conf=conf_threshold, iou=iou_threshold, verbose=False)
         processing_time = time.time() - start_time
 
-        cracks = extract_crack_features(results, image.shape, min_area_px=50, mask_downsample_ratio=4)
+        filter_results_by_class(results, [1])
+        cracks = extract_crack_features(results, image.shape, min_area_px=50, mask_downsample_ratio=4,
+                                        target_class_ids=[1])
 
         detections = []
         for i, c in enumerate(cracks):
@@ -232,8 +234,10 @@ async def 批量序列检测(
                 if image is None:
                     continue
 
-                results = model.predict(source=image, conf=0.15, iou=0.7, verbose=False)
-                cracks = extract_crack_features(results, image.shape, min_area_px=50, mask_downsample_ratio=4)
+                results = model.predict(source=image, conf=0.3, iou=0.7, verbose=False)
+                filter_results_by_class(results, [1])
+                cracks = extract_crack_features(results, image.shape, min_area_px=50, mask_downsample_ratio=4,
+                                        target_class_ids=[1])
                 all_cracks.append(cracks)
                 image_ids.append(f.filename)
 

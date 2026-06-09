@@ -2,14 +2,17 @@
 # 模型配置
 model:
   name: "yolov8s-seg"
-  weights: "runs/segment/outputs/runs/crack_detection/weights/best.pt"
-  conf_threshold: 0.15
+  weights: "runs/segment/outputs/runs/crack_detection/weights/best.onnx"  # ONNX FP16（当前最快）
+  conf_threshold: 0.3
   iou_threshold: 0.7
+  half: true              # 半精度推理 (ONNX/GPU 下生效)
+  imgsz: 640              # 推理输入尺寸，越小越快
 
 # 后处理 - 裂缝特征提取
 postprocess:
   min_area_px: 50          # 最小裂缝面积（像素），过滤噪声
   mask_downsample_ratio: 4 # mask 降采样比例，加速计算
+  target_class_ids: [1]    # 只保留的类别ID（1=裂缝，0=接缝不保留），null=保留全部
 
 # 视频跟踪参数
 tracker:

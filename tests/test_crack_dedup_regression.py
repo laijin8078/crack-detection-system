@@ -72,8 +72,8 @@ def run_dedup_on_case(case_dir, model, config=None):
         img = cv2.imread(str(img_path))
         if img is None:
             continue
-        results = model.predict(source=img, conf=0.15, iou=0.7, verbose=False)
-        cracks = extract_crack_features(results, img.shape, min_area_px=50)
+        results = model.predict(source=img, conf=0.3, iou=0.7, verbose=False)
+        cracks = extract_crack_features(results, img.shape, min_area_px=50, target_class_ids=[1])
         all_cracks.append(cracks)
         image_ids.append(img_path.name)
 

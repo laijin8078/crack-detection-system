@@ -1,0 +1,59 @@
+{
+  "title": "裂缝检测报告 - 3F东墙",
+  "wall_id": "3F东墙",
+  "generated_at": "2026-06-05T12:47:26.843912",
+  "auto_screenshots": {
+    "unique_cracks": 1,
+    "raw_detections": 2,
+    "dedup_removed": 1
+  },
+  "manual_screenshots": {
+    "unique_cracks": 2,
+    "raw_detections": 2
+  },
+  "total_unique_cracks": 3,
+  "total_raw_detections": 4,
+  "risk_assessment": {
+    "level": "轻微",
+    "action": "建议定期观察，必要时进行表面修补"
+  },
+  "all_cracks": [
+    {
+      "crack_id": "C1",
+      "source": "自动截图",
+      "locations": [
+        "终点",
+        "起点"
+      ],
+      "confidence": 0.5625,
+      "area_px": 257456,
+      "length_px_est": 1494.46,
+      "orientation_angle": 163.0,
+      "is_duplicate": true
+    },
+    {
+      "crack_id": "C1",
+      "source": "3F东墙_工单001_垂直80.0度_水平130.0度_20260605_111704_223.jpg",
+      "locations": [
+        "手动拍摄"
+      ],
+      "confidence": 0.4958,
+      "area_px": 455808,
+      "length_px_est": 2262.02,
+      "orientation_angle": 175.57,
+      "is_duplicate": false
+    },
+    {
+      "crack_id": "C2",
+      "source": "3F东墙_工单001_垂直80.0度_水平130.0度_20260605_111704_223.jpg",
+      "locations": [
+        "手动拍摄"
+      ],
+      "confidence": 0.3418,
+      "area_px": 113360,
+      "length_px_est": 1559.43,
+      "orientation_angle": 171.98,
+      "is_duplicate": false
+    }
+  ]
+}

@@ -5,6 +5,7 @@
 
 import cv2
 import numpy as np
+import torch
 
 
 def polygon_to_mask(polygon, image_shape):
@@ -225,7 +226,39 @@ def compute_mask_centroid(mask):
     return (cx, cy)
 
 
-def extract_crack_features(results, image_shape, min_area_px=50, mask_downsample_ratio=4):
+def filter_results_by_class(results, target_class_ids):
+    """
+    从 YOLO 推理结果中过滤掉不需要的类别，原地修改 results 列表中的 boxes 和 masks。
+
+    必须在 results[0].plot() 之前调用，否则标注图中会包含被过滤的类别。
+
+    Args:
+        results: ultralytics Results 对象列表
+        target_class_ids: 要保留的类别 ID 列表，如 [0]
+
+    Returns:
+        results: 原地修改后的 results（同时返回以方便链式调用）
+    """
+    if target_class_ids is None or results is None:
+        return results
+    for r in results:
+        if r.boxes is None or len(r.boxes) == 0:
+            continue
+        if not hasattr(r.boxes, 'cls') or r.boxes.cls is None:
+            continue
+        # 构建布尔掩码：保留 target_class_ids 中的类别
+        keep = torch.zeros(len(r.boxes.cls), dtype=torch.bool, device=r.boxes.cls.device)
+        for cid in target_class_ids:
+            keep = keep | (r.boxes.cls == cid)
+        if keep.sum() < len(r.boxes):
+            r.boxes = r.boxes[keep]
+            if r.masks is not None and r.masks.data is not None:
+                r.masks.data = r.masks.data[keep]
+    return results
+
+
+def extract_crack_features(results, image_shape, min_area_px=50, mask_downsample_ratio=4,
+                          target_class_ids=None):
     """
     从 YOLOv8-seg 推理结果中提取每条裂缝的特征
 
@@ -234,6 +267,8 @@ def extract_crack_features(results, image_shape, min_area_px=50, mask_downsample
         image_shape: (H, W) 原始图像尺寸
         min_area_px: 最小面积过滤阈值
         mask_downsample_ratio: mask 降采样比例
+        target_class_ids: 要保留的类别 ID 列表，None 表示保留全部。
+                          例如 [0] 表示只保留裂缝，过滤掉接缝等其他类别。
 
     Returns:
         cracks: list of dict，每条裂缝包含：
@@ -262,6 +297,11 @@ def extract_crack_features(results, image_shape, min_area_px=50, mask_downsample
         ds_H, ds_W = H // mask_downsample_ratio, W // mask_downsample_ratio
 
         for i, box in enumerate(boxes):
+            # ---- 类别过滤：只保留目标类别 ----
+            if target_class_ids is not None:
+                cls_id = int(box.cls[0]) if hasattr(box, 'cls') and box.cls is not None else 0
+                if cls_id not in target_class_ids:
+                    continue
             xyxy = box.xyxy[0].cpu().numpy()
             conf = float(box.conf[0])
 
@@ -284,25 +324,45 @@ def extract_crack_features(results, image_shape, min_area_px=50, mask_downsample
                 mask_full = np.zeros((H, W), dtype=np.uint8)
                 mask_full[y1:y2, x1:x2] = 1
 
-            # 面积过滤
-            area = compute_area(mask_full)
+            # 降采样 mask（后续计算全部在降采样 mask 上运行，大幅提速）
+            mask_ds = cv2.resize(mask_full, (ds_W, ds_H), interpolation=cv2.INTER_NEAREST)
+            ds_area = compute_area(mask_ds)
+
+            # 面积过滤（降采样后面积 = 原面积 / ratio²）
+            area = ds_area * (mask_downsample_ratio ** 2)
             if area < min_area_px:
                 continue
 
-            # 降采样 mask（用于加速后续计算）
-            mask_ds = cv2.resize(mask_full, (ds_W, ds_H), interpolation=cv2.INTER_NEAREST)
+            # ---- 以下计算均在降采样 mask 上执行，然后还原到原始尺度 ----
+            ratio = mask_downsample_ratio
 
-            # 计算特征
-            centroid = compute_mask_centroid(mask_full)
-            center_xy = list(centroid) if centroid else [
+            # 质心（降采样）
+            centroid_ds = compute_mask_centroid(mask_ds)
+            center_xy = [centroid_ds[0] * ratio, centroid_ds[1] * ratio] if centroid_ds else [
                 float(xyxy[0] + xyxy[2]) / 2,
                 float(xyxy[1] + xyxy[3]) / 2
             ]
-            orientation = compute_orientation(mask_full)
-            length_est = estimate_length(mask_full)
 
-            # 骨架提取
-            skel_mask, skel_pts = extract_skeleton(mask_full)
+            # 方向角（角度与尺度无关，无需还原）
+            orientation = compute_orientation(mask_ds)
+
+            # 长度估计（降采样，需还原）
+            length_ds = estimate_length(mask_ds)
+            length_est = length_ds * ratio
+
+            # 骨架提取（在降采样 mask 上执行，大幅提速）
+            skel_mask_ds, skel_pts_ds = extract_skeleton(mask_ds)
+
+            # 骨架点还原到原始尺度
+            if len(skel_pts_ds) > 0:
+                skel_pts = (skel_pts_ds.astype(np.float32) * ratio).astype(np.int32)
+            else:
+                skel_pts = np.zeros((0, 2), dtype=np.int32)
+
+            # 骨架二值图还原（用于端点检测和可视化）
+            skel_mask = cv2.resize(skel_mask_ds, (W, H), interpolation=cv2.INTER_NEAREST)
+
+            # 归一化骨架（基于降采样点 + 原始尺度 center/length）
             scale = max(length_est, 1.0)
             skel_norm = normalize_skeleton_pts(skel_pts, center_xy, scale)
             endpoints = skeleton_endpoints(skel_mask)

@@ -84,7 +84,9 @@
       "Bash(curl -s http://localhost:8000/openapi.json)",
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('接口数量:', len\\(d['paths']\\)\\); [print\\(f'  {m.upper\\(\\):7} {p} - {i.get\\(\\\\\"summary\\\\\",\\\\\"\\\\\"\\)}'\\) for p in d['paths'] for m,i in d['paths'][p].items\\(\\)]\")",
       "Bash(curl -s http://localhost:8000/openapi.json -o /tmp/openapi.json)",
-      "Bash(curl -s -X POST http://localhost:8000/api/detect -F \"file=@test_cases/same_crack_sequence_001/img_01.jpg\")"
+      "Bash(curl -s -X POST http://localhost:8000/api/detect -F \"file=@test_cases/same_crack_sequence_001/img_01.jpg\")",
+      "Bash(grep -v \"^--$\")",
+      "Bash(python *)"
     ]
   }
 }

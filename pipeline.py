@@ -20,7 +20,7 @@ from ultralytics import YOLO
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from utils.crack_postprocess import extract_crack_features
+from utils.crack_postprocess import extract_crack_features, filter_results_by_class
 from utils.crack_dedup import deduplicate_cracks
 from utils.crack_report import (
     build_image_report,
@@ -36,7 +36,8 @@ RESULTS_DIR = BASE_DIR / "results"
 PROCESSED_DIR = RESULTS_DIR / "processed_images"
 REPORTS_DIR = RESULTS_DIR / "reports"
 
-MODEL_PATH = BASE_DIR / "runs" / "segment" / "outputs" / "runs" / "crack_detection" / "weights" / "best.pt"
+MODEL_PATH = BASE_DIR / "runs" / "segment" / "outputs" / "runs" / "crack_detection" / "weights" / "best.onnx"
+MODEL_PATH_PT = BASE_DIR / "runs" / "segment" / "outputs" / "runs" / "crack_detection" / "weights" / "best.pt"
 CONFIG_PATH = BASE_DIR / "configs" / "inference_config.yaml"
 
 
@@ -128,15 +129,19 @@ def detect_single_image(model, image_path, config, save_annotated=True):
     pp_cfg = config.get("postprocess", {})
     min_area = pp_cfg.get("min_area_px", 50)
     ds_ratio = pp_cfg.get("mask_downsample_ratio", 4)
+    target_cls = pp_cfg.get("target_class_ids", None)
 
     model_cfg = config.get("model", {})
     results = model.predict(
         source=image,
-        conf=model_cfg.get("conf_threshold", 0.15),
+        conf=model_cfg.get("conf_threshold", 0.3),
         iou=model_cfg.get("iou_threshold", 0.7),
+        imgsz=model_cfg.get("imgsz", 640),
         verbose=False,
     )
-    cracks = extract_crack_features(results, image.shape, min_area, ds_ratio)
+    filter_results_by_class(results, target_cls)
+    cracks = extract_crack_features(results, image.shape, min_area, ds_ratio,
+                                    target_class_ids=target_cls)
     annotated = results[0].plot()
 
     if save_annotated:
@@ -148,6 +153,7 @@ def detect_single_image(model, image_path, config, save_annotated=True):
 
 
 def process_auto_images(model, config, wall_id):
+    import time
     image_files = get_image_files(AUTO_DIR)
     if not image_files:
         print("📷 自动截图：无图片，跳过")
@@ -161,14 +167,22 @@ def process_auto_images(model, config, wall_id):
     image_ids = []
     image_paths = []
 
+    t_total = time.time()
     for img_path in image_files:
+        t_img = time.time()
         print(f"  检测: {img_path.name}")
         cracks, _ = detect_single_image(model, img_path, config, save_annotated=True)
         all_cracks.append(cracks)
         image_ids.append(img_path.name)
         image_paths.append(str(img_path))
+        elapsed = (time.time() - t_img) * 1000
         if cracks:
-            print(f"    检测到 {len(cracks)} 个裂缝")
+            print(f"    检测到 {len(cracks)} 个裂缝 ({elapsed:.0f}ms)")
+        else:
+            print(f"    未检测到裂缝 ({elapsed:.0f}ms)")
+
+    t_infer = time.time()
+    print(f"  推理总计: {(t_infer - t_total):.1f}s")
 
     dedup_cfg = config.get("dedup", {})
     dedup_result = deduplicate_cracks(
@@ -176,6 +190,9 @@ def process_auto_images(model, config, wall_id):
         debug=dedup_cfg.get("debug_dedup", False),
         image_paths=image_paths,
     )
+    t_dedup = time.time()
+    print(f"  去重耗时: {(t_dedup - t_infer):.2f}s")
+    print(f"  总耗时: {(t_dedup - t_total):.1f}s")
 
     print(f"\n  原始检测总数: {dedup_result['raw_detection_count']}")
     print(f"  去重后唯一裂缝: {dedup_result['unique_crack_count']}")
@@ -778,9 +795,37 @@ def process_uploads(wall_id="未命名", status_dict=None):
     generated_files = []
 
     config = load_config()
-    print(f"\n🔧 加载 YOLO 模型: {MODEL_PATH}")
-    _patch_spdconv()
-    model = YOLO(str(MODEL_PATH))
+    model_cfg = config.get("model", {})
+    use_half = model_cfg.get("half", False)
+    model_weights = model_cfg.get("weights", str(MODEL_PATH))
+    model_path = BASE_DIR / model_weights if not Path(model_weights).is_absolute() else Path(model_weights)
+    if not model_path.exists():
+        print(f"   配置模型未找到 ({model_path})，回退到默认 ONNX 模型")
+        model_path = MODEL_PATH if MODEL_PATH.exists() else MODEL_PATH_PT
+
+    print(f"\n🔧 加载 YOLO 模型: {model_path}")
+    print(f"   半精度(half): {use_half}")
+
+    is_onnx = model_path.suffix == ".onnx"
+    if is_onnx:
+        print("   使用 ONNX Runtime 推理 (CPU 加速)")
+        model = YOLO(str(model_path))
+    else:
+        _patch_spdconv()
+        model = YOLO(str(model_path))
+
+    # 半精度（仅 GPU 有效，CPU 上跳过）
+    if use_half and not is_onnx:
+        import torch
+        if torch.cuda.is_available():
+            try:
+                model.model.half()
+                print("   已启用 FP16 半精度 (GPU)")
+            except Exception as e:
+                print(f"   ⚠️ FP16 不可用: {e}")
+        else:
+            print("   ⚠️ 未检测到 GPU，跳过 FP16（CPU 不支持半精度推理）")
+
     print("   模型加载成功")
 
     try:

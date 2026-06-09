@@ -16,7 +16,7 @@ import numpy as np
 from ultralytics import YOLO
 from datetime import datetime
 
-from utils.crack_postprocess import extract_crack_features
+from utils.crack_postprocess import extract_crack_features, filter_results_by_class
 from utils.crack_tracker import CrackTracker
 from utils.crack_dedup import deduplicate_cracks
 from utils.crack_report import (
@@ -88,7 +88,7 @@ def load_inference_config(config_path='configs/inference_config.yaml'):
     return {}
 
 
-def predict_single_image(model, image_path, config, save_images=False):
+def predict_single_image(model, image_path, config, save_images=True):
     """
     对单张图像进行推理并提取裂缝特征
 
@@ -104,17 +104,21 @@ def predict_single_image(model, image_path, config, save_images=False):
     pp_cfg = config.get('postprocess', {})
     min_area = pp_cfg.get('min_area_px', 50)
     ds_ratio = pp_cfg.get('mask_downsample_ratio', 4)
+    target_cls = pp_cfg.get('target_class_ids', None)
 
     results = model.predict(
         source=image,
-        conf=config.get('model', {}).get('conf_threshold', 0.15),
+        conf=config.get('model', {}).get('conf_threshold', 0.3),
         iou=config.get('model', {}).get('iou_threshold', 0.7),
+        imgsz=config.get('model', {}).get('imgsz', 640),
         verbose=False,
     )
-    cracks = extract_crack_features(results, image.shape, min_area, ds_ratio)
+    cracks = extract_crack_features(results, image.shape, min_area, ds_ratio,
+                                    target_class_ids=target_cls)
 
     # 手动保存标注图片（避免 YOLO numpy 模式下只存一张的问题）
     if save_images:
+        filter_results_by_class(results, target_cls)
         save_dir = Path('outputs/predictions/inference')
         save_dir.mkdir(parents=True, exist_ok=True)
         annotated = results[0].plot()
@@ -126,7 +130,7 @@ def predict_single_image(model, image_path, config, save_images=False):
 
 # ==================== Mode: image ====================
 
-def run_image_mode(model, source, config, save_json=True, save_images=False):
+def run_image_mode(model, source, config, save_json=True, save_images=True):
     """
     单张/批量图像推理模式
     不做去重，仅做单图检测与基础统计
@@ -159,7 +163,7 @@ def run_image_mode(model, source, config, save_json=True, save_images=False):
     ds_ratio = pp_cfg.get('mask_downsample_ratio', 4)
 
     model_cfg = config.get('model', {})
-    conf = model_cfg.get('conf_threshold', 0.15)
+    conf = model_cfg.get('conf_threshold', 0.3)
     iou = model_cfg.get('iou_threshold', 0.7)
 
     for img_path in image_files:
@@ -244,9 +248,10 @@ def run_video_mode(model, source, config, save_json=True, save_video=False):
     pp_cfg = config.get('postprocess', {})
     min_area = pp_cfg.get('min_area_px', 50)
     ds_ratio = pp_cfg.get('mask_downsample_ratio', 4)
+    target_cls = pp_cfg.get('target_class_ids', None)
 
     model_cfg = config.get('model', {})
-    conf = model_cfg.get('conf_threshold', 0.15)
+    conf = model_cfg.get('conf_threshold', 0.3)
     iou = model_cfg.get('iou_threshold', 0.7)
 
     frame_idx = 0
@@ -273,14 +278,17 @@ def run_video_mode(model, source, config, save_json=True, save_video=False):
         # YOLO 推理
         results = model.predict(
             source=frame, conf=conf, iou=iou, verbose=False,
+            imgsz=config.get('model', {}).get('imgsz', 640),
         )
-        cracks = extract_crack_features(results, frame.shape, min_area, ds_ratio)
+        cracks = extract_crack_features(results, frame.shape, min_area, ds_ratio,
+                                        target_class_ids=target_cls)
         frame_raw_counts.append(len(cracks))
 
         # 更新 tracker
         assignments = tracker.update(cracks, frame_idx)
 
         # 可视化
+        filter_results_by_class(results, target_cls)
         annotated = results[0].plot()
         for det_idx, tid in assignments.items():
             c = cracks[det_idx]
@@ -336,7 +344,7 @@ def run_video_mode(model, source, config, save_json=True, save_video=False):
 
 # ==================== Mode: image_sequence ====================
 
-def run_image_sequence_mode(model, source, config, wall_id=None, save_json=True, save_images=False):
+def run_image_sequence_mode(model, source, config, wall_id=None, save_json=True, save_images=True):
     """
     多图序列推理模式
     对多张图像进行跨图去重，为同一裂缝分配统一 crack_id
@@ -458,8 +466,10 @@ if __name__ == '__main__':
                         help='检测完成后自动调用 DeepSeek 生成维修建议')
     parser.add_argument('--advice-pdf', action='store_true',
                         help='生成维修建议的同时输出 PDF 报告（需同时指定 --advice）')
-    parser.add_argument('--save-images', action='store_true',
-                        help='保存带标注框和 mask 的预测图片到 outputs/predictions/')
+    parser.add_argument('--save-images', action='store_true', default=True,
+                        help='保存带标注框和 mask 的预测图片到 outputs/predictions/（默认开启，使用 --no-save-images 禁用）')
+    parser.add_argument('--no-save-images', action='store_false', dest='save_images',
+                        help='不保存预测图片')
     parser.add_argument('--debug-dedup', action='store_true',
                         help='输出跨图去重匹配得分明细和骨架可视化（仅 image_sequence 模式）')
 

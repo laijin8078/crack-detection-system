@@ -16,7 +16,7 @@ from ultralytics import YOLO
 import numpy as np
 import yaml
 
-from utils.crack_postprocess import extract_crack_features
+from utils.crack_postprocess import extract_crack_features, filter_results_by_class
 from utils.crack_tracker import CrackTracker
 from utils.crack_report import build_tracking_report, build_image_report, save_report
 
@@ -82,7 +82,7 @@ def load_inference_config(config_path='configs/inference_config.yaml'):
 
 
 class CrackDetector:
-    def __init__(self, model_path, conf_threshold=0.15, iou_threshold=0.7,
+    def __init__(self, model_path, conf_threshold=0.3, iou_threshold=0.7,
                  use_tracker=True, config_path='configs/inference_config.yaml'):
         """
         初始化裂缝检测器
@@ -106,6 +106,7 @@ class CrackDetector:
         pp_cfg = self.config.get('postprocess', {})
         self.min_area = pp_cfg.get('min_area_px', 50)
         self.ds_ratio = pp_cfg.get('mask_downsample_ratio', 4)
+        self.target_cls = pp_cfg.get('target_class_ids', None)
 
         # tracker
         self.use_tracker = use_tracker
@@ -142,7 +143,8 @@ class CrackDetector:
         )
 
         # 提取裂缝特征
-        cracks = extract_crack_features(results, frame.shape, self.min_area, self.ds_ratio)
+        cracks = extract_crack_features(results, frame.shape, self.min_area, self.ds_ratio,
+                                        target_class_ids=self.target_cls)
         num_cracks = len(cracks)
 
         # tracker 更新
@@ -156,7 +158,8 @@ class CrackDetector:
                 track_assignments = self.tracker.update(cracks)
             unique_tracks = self.tracker.unique_track_count()
 
-        # 获取标注后的图像
+        # 获取标注后的图像（先过滤非目标类别）
+        filter_results_by_class(results, self.target_cls)
         annotated_frame = results[0].plot()
 
         # 绘制 track ID
@@ -395,7 +398,8 @@ class CrackDetector:
                 source=frame, conf=self.conf_threshold,
                 iou=self.iou_threshold, verbose=False,
             )
-            cracks = extract_crack_features(results, frame.shape, self.min_area, self.ds_ratio)
+            cracks = extract_crack_features(results, frame.shape, self.min_area, self.ds_ratio,
+                                        target_class_ids=self.target_cls)
             report = build_image_report(
                 source_id=img_file.name,
                 cracks=cracks,
@@ -422,7 +426,7 @@ if __name__ == '__main__':
                         help='模型权重路径')
     parser.add_argument('--source', type=str, default='0',
                         help='输入源: 0=USB摄像头, rtsp://...=网络摄像头, 图像路径, 视频路径')
-    parser.add_argument('--conf', type=float, default=0.15,
+    parser.add_argument('--conf', type=float, default=0.3,
                         help='置信度阈值')
     parser.add_argument('--iou', type=float, default=0.7,
                         help='NMS IoU阈值')
