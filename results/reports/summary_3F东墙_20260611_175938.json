@@ -1,0 +1,34 @@
+{
+  "title": "裂缝检测报告 - 3F东墙",
+  "wall_id": "3F东墙",
+  "generated_at": "2026-06-11T17:59:38.428696",
+  "auto_screenshots": {
+    "unique_cracks": 1,
+    "raw_detections": 1,
+    "dedup_removed": 0
+  },
+  "manual_screenshots": {
+    "unique_cracks": 0,
+    "raw_detections": 0
+  },
+  "total_unique_cracks": 1,
+  "total_raw_detections": 1,
+  "risk_assessment": {
+    "level": "轻微",
+    "action": "建议定期观察，必要时进行表面修补"
+  },
+  "all_cracks": [
+    {
+      "crack_id": "C1",
+      "source": "自动截图",
+      "locations": [
+        "起点"
+      ],
+      "confidence": 0.3218,
+      "area_px": 96832,
+      "length_px_est": 720.23,
+      "orientation_angle": 107.88,
+      "is_duplicate": false
+    }
+  ]
+}

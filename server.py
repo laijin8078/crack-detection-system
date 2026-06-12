@@ -8,6 +8,7 @@ import struct
 import threading
 import zipfile
 import io
+import re
 from datetime import datetime
 
 app = Flask(__name__)
@@ -35,11 +36,50 @@ TARGET_HOST = os.environ.get("RESULT_TARGET_HOST", "")
 TARGET_PORT = int(os.environ.get("RESULT_TARGET_PORT", "0"))
 
 
+STANDARD_PDF_NAME_RE = re.compile(r"^\d{3,}_pdf_\d{14}_\d+\.pdf$", re.IGNORECASE)
+
+
+def find_order_serial(*values):
+    for value in values:
+        text = str(value or "")
+        for pattern in (r"工单\s*([0-9]{3,})", r"([0-9]{3,})_pdf_\d{14}_\d+\.pdf"):
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1)
+    return "000"
+
+
+def iter_upload_names():
+    for folder in (AUTO_UPLOAD_FOLDER, MANUAL_UPLOAD_FOLDER):
+        if not os.path.isdir(folder):
+            continue
+        for name in os.listdir(folder):
+            yield name
+
+
+def build_tcp_pdf_names(wall_id, pdf_files):
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    order_serial = find_order_serial(
+        wall_id,
+        *(os.path.basename(fpath) for fpath in pdf_files),
+        *iter_upload_names(),
+    )
+    return {
+        fpath: f"{order_serial}_pdf_{timestamp}_{idx}.pdf"
+        for idx, fpath in enumerate(pdf_files, 1)
+    }
+
+
 def send_results_via_tcp(wall_id):
     """
-    通过 TCP 将 PDF 报告推送给上位机 B
+    通过 TCP 将 PDF 报告推送给上位机 B。
 
-    协议：每个文件 [4字节 内容长度(大端)] + [PDF二进制流]
+    协议需与 receiver.py 保持一致：
+      [4字节 meta JSON长度] + [meta JSON]
+      循环 file_count 次：
+        [4字节 文件名长度] + [文件名 UTF-8]
+        [4字节 文件内容长度] + [文件二进制内容]
+      [4字节 0] 作为结束标记
     """
     info = processing_status.get(wall_id, {})
     all_files = info.get("files", [])
@@ -54,6 +94,8 @@ def send_results_via_tcp(wall_id):
         print("[tcp] 没有 PDF 文件，跳过推送")
         return
 
+    tcp_pdf_names = build_tcp_pdf_names(wall_id, pdf_files)
+
     print(f"[tcp] 连接上位机B {TARGET_HOST}:{TARGET_PORT}, 共 {len(pdf_files)} 个 PDF")
 
     sock = None
@@ -64,16 +106,42 @@ def send_results_via_tcp(wall_id):
         sock.connect((TARGET_HOST, TARGET_PORT))
         print(f"[tcp] 已连接")
 
-        total = 0
+        meta = {
+            "wall_id": wall_id,
+            "summary": info.get("summary") or {},
+            "file_count": len(pdf_files),
+            "files": [
+                {
+                    "filename": tcp_pdf_names[fpath],
+                    "source_filename": os.path.basename(fpath),
+                    "size": os.path.getsize(fpath),
+                    "type": "pdf",
+                }
+                for fpath in pdf_files
+            ],
+        }
+        meta_bytes = json.dumps(meta, ensure_ascii=False).encode("utf-8")
+        sock.sendall(struct.pack(">I", len(meta_bytes)))
+        sock.sendall(meta_bytes)
+        total = 4 + len(meta_bytes)
+        print(f"[tcp] 已发送元数据: {len(meta_bytes)}字节, file_count={len(pdf_files)}")
+
         for i, fpath in enumerate(pdf_files, 1):
+            filename = tcp_pdf_names[fpath]
+            name_bytes = filename.encode("utf-8")
             with open(fpath, "rb") as f:
                 content = f.read()
-            header = struct.pack(">I", len(content))
-            print(f"[tcp] 发送第{i}个: header={len(content)} (0x{len(content):08X}), "
-                  f"content={len(content)}字节, 文件={os.path.basename(fpath)}")
-            sock.sendall(header)
+
+            print(f"[tcp] 发送第{i}个: name={filename}, "
+                  f"content={len(content)}字节 (0x{len(content):08X})")
+            sock.sendall(struct.pack(">I", len(name_bytes)))
+            sock.sendall(name_bytes)
+            sock.sendall(struct.pack(">I", len(content)))
             sock.sendall(content)
-            total += 4 + len(content)
+            total += 4 + len(name_bytes) + 4 + len(content)
+
+        sock.sendall(struct.pack(">I", 0))
+        total += 4
 
         print(f"[tcp] 全部发送完成, 共{len(pdf_files)}个PDF, 总计{total}字节")
 
