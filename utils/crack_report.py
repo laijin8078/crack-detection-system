@@ -136,7 +136,7 @@ def build_crack_entry(
     }
 
 
-def build_tracking_report(source_id, tracker_summary, raw_detection_count=None, model_name='yolov8s-seg'):
+def build_tracking_report(source_id, tracker_summary, raw_detection_count=None, model_name='yolov8n-seg-cracks-joints'):
     """
     从 tracker 摘要构建视频跟踪报告
 
@@ -188,7 +188,7 @@ def build_tracking_report(source_id, tracker_summary, raw_detection_count=None, 
     )
 
 
-def build_dedup_report(source_id, dedup_result, wall_id=None, model_name='yolov8s-seg'):
+def build_dedup_report(source_id, dedup_result, wall_id=None, model_name='yolov8n-seg-cracks-joints'):
     """
     从去重结果构建跨图去重报告
 
@@ -249,7 +249,7 @@ def build_dedup_report(source_id, dedup_result, wall_id=None, model_name='yolov8
     )
 
 
-def build_image_report(source_id, cracks, model_name='yolov8s-seg'):
+def build_image_report(source_id, cracks, model_name='yolov8n-seg-cracks-joints'):
     """
     单张图像的基础报告（不做去重）
 

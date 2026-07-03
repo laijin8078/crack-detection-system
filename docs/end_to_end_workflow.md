@@ -3,7 +3,7 @@
 ## 整体流程
 
 ```
-墙面图像/视频 → YOLOv8s-seg 检测 → 后处理(跟踪/去重) → 检测 JSON → DeepSeek → 维修建议 JSON
+墙面图像/视频 → yolov8n-seg-cracks-joints.pt 检测 → 后处理(跟踪/去重) → 检测 JSON → DeepSeek → 维修建议 JSON
 ```
 
 * 训练代码：`train.py`（不需要在推理流程中运行）
@@ -120,7 +120,7 @@ outputs/advice/advice_dedup_test_wall.json
 
 > 当前系统已实现从墙面图像输入到 DeepSeek 维修建议输出的完整端到端流程。
 >
-> **检测阶段**：使用 YOLOv8s-seg 对墙面图像进行裂缝实例分割，在视频场景下通过轻量级 tracker 分配稳定 track_id 统计唯一裂缝数，在多图场景下通过 wall_id 分组和几何特征匹配进行跨图去重。
+> **检测阶段**：使用 yolov8n-seg-cracks-joints.pt 对墙面图像进行裂缝实例分割，在视频场景下通过轻量级 tracker 分配稳定 track_id 统计唯一裂缝数，在多图场景下通过 wall_id 分组和几何特征匹配进行跨图去重。
 >
 > **建议阶段**：将结构化检测 JSON 输入 DeepSeek，由 LLM 根据裂缝数量、长度、面积、方向角、跨图重复情况等信息，生成包含风险等级、可能原因、分步修补方案、建议材料、是否需要人工复核的结构化维修建议。
 >

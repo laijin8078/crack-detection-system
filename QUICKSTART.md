@@ -43,7 +43,7 @@ tensorboard --logdir outputs/runs
 
 **训练完成后，最佳模型保存在：**
 ```
-outputs/runs/crack_detection/weights/best.pt
+runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt
 ```
 
 ## 第四步：测试模型
@@ -63,7 +63,7 @@ python inference.py --source data/crack-seg/test/images/ --save-json
 ### 4.3 评估模型
 
 ```bash
-python evaluate.py --models outputs/runs/crack_detection/weights/best1.pt --save
+python evaluate.py --models runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt --save
 ```
 
 ## 第五步：实时检测
@@ -123,7 +123,7 @@ python realtime_detect.py --source video.mp4
 ### 评估相关
 ```bash
 # 评估模型
-python evaluate.py --models best1.pt --save
+python evaluate.py --models runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt --save
 
 # 对比模型
 python evaluate.py --models model1.pt model2.pt --save
@@ -143,14 +143,13 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
 ### 问题1：显存不足
 **解决方案：**
 1. 减小batch size：编辑`configs/train_config.yaml`，将`batch: 16`改为`batch: 8`或更小
-2. 使用更小的模型：将`model: yolov8s-seg.pt`改为`model: yolov8n-seg.pt`
+2. 使用更小的模型：将`model: runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt`改为更小的权重文件
 
 ### 问题2：模型文件不存在
 **解决方案：**
 首次运行时，YOLOv8会自动下载预训练权重。如果下载失败，可以手动下载：
 ```bash
-# 下载YOLOv8s-seg预训练权重
-wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8s-seg.pt
+# 请确认 yolov8n-seg-cracks-joints.pt 权重文件已放在工程指定目录
 ```
 
 ### 问题3：Web服务无法访问

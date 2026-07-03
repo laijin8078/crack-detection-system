@@ -1,10 +1,10 @@
 # 建筑裂缝检测深度学习系统
 
-基于 YOLOv8s-seg 的建筑表面裂缝检测系统，支持裂缝实例分割、视频跟踪去重、跨图去重、DeepSeek AI 维修建议生成。
+基于 yolov8n-seg-cracks-joints.pt 的建筑表面裂缝检测系统，支持裂缝实例分割、视频跟踪去重、跨图去重、DeepSeek AI 维修建议生成。
 
 ## 功能特性
 
-- **裂缝检测**: YOLOv8s-seg 实例分割，输出 bbox + mask + 骨架 + 几何特征
+- **裂缝检测**: yolov8n-seg-cracks-joints.pt 实例分割，输出 bbox + mask + 骨架 + 几何特征
 - **视频跟踪**: 轻量级 tracker，为连续帧中的同一条裂缝分配稳定 track_id
 - **跨图去重**: 基于骨架形态相似度的跨图像裂缝去重，区分同图/跨图匹配规则
 - **AI 维修建议**: 接入 DeepSeek API，根据检测结果自动生成结构化修补方案
@@ -15,7 +15,7 @@
 ## 系统架构
 
 ```
-墙面图像/视频 → YOLOv8s-seg 检测 → 后处理(骨架/跟踪/去重) → 检测 JSON
+墙面图像/视频 → yolov8n-seg-cracks-joints.pt 检测 → 后处理(骨架/跟踪/去重) → 检测 JSON
                                                               ↓
                                             DeepSeek API → 维修建议 JSON + PDF
 ```
@@ -77,7 +77,7 @@ pip install -r requirements.txt
 
 ```bash
 python train.py
-# 模型保存在 outputs/runs/crack_detection/weights/best.pt
+# 模型保存在 runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt
 ```
 
 ### 3. 推理检测
@@ -190,7 +190,7 @@ v2 版本用骨架形态相似度替代中心点距离硬门控，解决了同�
 
 详见 [`docs/dedup_optimization_notes.md`](docs/dedup_optimization_notes.md)
 
-## 性能指标 (YOLOv8s-seg)
+## 性能指标 (yolov8n-seg-cracks-joints.pt)
 
 - mAP@0.5: 88-91%
 - 推理速度: 35-50 FPS (RTX 3060)

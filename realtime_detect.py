@@ -82,7 +82,7 @@ def load_inference_config(config_path='configs/inference_config.yaml'):
 
 
 class CrackDetector:
-    def __init__(self, model_path, conf_threshold=0.3, iou_threshold=0.7,
+    def __init__(self, model_path, conf_threshold=0.15, iou_threshold=0.7,
                  use_tracker=True, config_path='configs/inference_config.yaml'):
         """
         初始化裂缝检测器
@@ -198,7 +198,7 @@ class CrackDetector:
         return build_tracking_report(
             source_id=source_name,
             tracker_summary=tracker_summary,
-            model_name=self.config.get('model', {}).get('name', 'yolov8s-seg'),
+            model_name=self.config.get('model', {}).get('name', 'yolov8n-seg-cracks-joints'),
         )
 
     def detect_from_camera(self, camera_id=0):
@@ -403,7 +403,7 @@ class CrackDetector:
             report = build_image_report(
                 source_id=img_file.name,
                 cracks=cracks,
-                model_name=self.config.get('model', {}).get('name', 'yolov8s-seg'),
+                model_name=self.config.get('model', {}).get('name', 'yolov8n-seg-cracks-joints'),
             )
             all_reports.append(report)
 
@@ -422,11 +422,11 @@ class CrackDetector:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='建筑裂缝实时检测')
-    parser.add_argument('--model', type=str, default='outputs/runs/crack_detection/weights/best1.pt',
+    parser.add_argument('--model', type=str, default='runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt',
                         help='模型权重路径')
     parser.add_argument('--source', type=str, default='0',
                         help='输入源: 0=USB摄像头, rtsp://...=网络摄像头, 图像路径, 视频路径')
-    parser.add_argument('--conf', type=float, default=0.3,
+    parser.add_argument('--conf', type=float, default=0.15,
                         help='置信度阈值')
     parser.add_argument('--iou', type=float, default=0.7,
                         help='NMS IoU阈值')

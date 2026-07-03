@@ -1,8 +1,8 @@
-# YOLOv8s-seg 训练配置文件
+# yolov8n-seg-cracks-joints 训练配置文件
 # 建筑裂缝检测项目
 
 # 模型配置
-model: yolov8s-seg.pt  # YOLOv8s-seg模型
+model: runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt  # 当前裂缝检测模型
 data: data/crack-seg/data.yaml  # 数据集配置文件
 
 # 训练参数

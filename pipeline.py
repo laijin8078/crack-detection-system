@@ -36,8 +36,8 @@ RESULTS_DIR = BASE_DIR / "results"
 PROCESSED_DIR = RESULTS_DIR / "processed_images"
 REPORTS_DIR = RESULTS_DIR / "reports"
 
-MODEL_PATH = BASE_DIR / "runs" / "segment" / "outputs" / "runs" / "crack_detection" / "weights" / "best.onnx"
-MODEL_PATH_PT = BASE_DIR / "runs" / "segment" / "outputs" / "runs" / "crack_detection" / "weights" / "best.pt"
+MODEL_PATH = BASE_DIR / "runs" / "segment" / "outputs" / "runs" / "crack_detection" / "weights" / "yolov8n-seg-cracks-joints.pt"
+MODEL_PATH_PT = MODEL_PATH
 CONFIG_PATH = BASE_DIR / "configs" / "inference_config.yaml"
 
 
@@ -134,7 +134,7 @@ def detect_single_image(model, image_path, config, save_annotated=True):
     model_cfg = config.get("model", {})
     results = model.predict(
         source=image,
-        conf=model_cfg.get("conf_threshold", 0.3),
+        conf=model_cfg.get("conf_threshold", 0.15),
         iou=model_cfg.get("iou_threshold", 0.7),
         imgsz=model_cfg.get("imgsz", 640),
         verbose=False,
@@ -202,7 +202,7 @@ def process_auto_images(model, config, wall_id):
         source_id="自动截图",
         dedup_result=dedup_result,
         wall_id=wall_id,
-        model_name=config.get("model", {}).get("name", "yolov8s-seg"),
+        model_name=config.get("model", {}).get("name", "yolov8n-seg-cracks-joints"),
     )
     report["image_type"] = "auto"
 
@@ -240,7 +240,7 @@ def process_manual_images(model, config):
         report = build_image_report(
             source_id=img_path.name,
             cracks=cracks,
-            model_name=config.get("model", {}).get("name", "yolov8s-seg"),
+            model_name=config.get("model", {}).get("name", "yolov8n-seg-cracks-joints"),
         )
         # 为每条裂缝标注位置
         for crack in report.get("cracks", []):
@@ -534,7 +534,7 @@ def generate_detection_pdf(report_path, wall_id=""):
     story.append(Spacer(1, 10 * mm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     story.append(Paragraph(
-        "本报告由 YOLOv8s-seg 自动生成，所有尺寸为像素值，未经尺度标定。仅供参考。", small_s
+        "本报告由 yolov8n-seg-cracks-joints 自动生成，所有尺寸为像素值，未经尺度标定。仅供参考。", small_s
     ))
 
     doc.build(story)
@@ -732,7 +732,7 @@ def generate_summary_pdf(summary_path, advice_path=None, annotated_images=None):
     story.append(Spacer(1, 15 * mm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     story.append(Paragraph(
-        "本报告由 YOLOv8s-seg 模型自动检测 + DeepSeek AI 生成建议，所有尺寸为像素值，未经尺度标定。"
+        "本报告由 yolov8n-seg-cracks-joints 模型自动检测 + DeepSeek AI 生成建议，所有尺寸为像素值，未经尺度标定。"
         "结构安全性需专业人员现场评估。",
         small_s
     ))

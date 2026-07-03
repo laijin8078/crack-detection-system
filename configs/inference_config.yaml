@@ -1,9 +1,9 @@
 # 裂缝检测推理与后处理配置
 # 模型配置
 model:
-  name: "yolov8s-seg"
-  weights: "runs/segment/outputs/runs/crack_detection/weights/best.onnx"  # ONNX FP16（当前最快）
-  conf_threshold: 0.3
+  name: "yolov8n-seg-cracks-joints"
+  weights: "runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt"
+  conf_threshold: 0.15
   iou_threshold: 0.7
   half: true              # 半精度推理 (ONNX/GPU 下生效)
   imgsz: 640              # 推理输入尺寸，越小越快

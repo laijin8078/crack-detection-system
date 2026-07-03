@@ -241,7 +241,7 @@ def generate_advice_pdf(advice_path, output_path=None):
     story.append(Spacer(1, 10 * mm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cccccc')))
     story.append(Paragraph(
-        "本报告由 YOLOv8s-seg 模型自动检测 + DeepSeek AI 生成建议，仅供参考。"
+        "本报告由 yolov8n-seg-cracks-joints 模型自动检测 + DeepSeek AI 生成建议，仅供参考。"
         "所有尺寸为像素值，未经尺度标定。结构安全性需专业人员现场评估。",
         small_s
     ))

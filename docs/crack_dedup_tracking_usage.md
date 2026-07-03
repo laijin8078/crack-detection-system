@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-基于 YOLOv8s-seg 的墙面裂缝检测系统，支持三种推理模式解决裂缝重复识别问题：
+基于 yolov8n-seg-cracks-joints.pt 的墙面裂缝检测系统，支持三种推理模式解决裂缝重复识别问题：
 
 | 模式 | 场景 | 去重方式 | 输出关键字段 |
 |------|------|----------|-------------|
@@ -63,7 +63,7 @@ python inference.py --source ./wall_001/ --mode image_sequence
 |------|------|
 | `image_or_video_id` | 输入标识（文件名/目录名） |
 | `source_type` | `"image"` / `"video"` / `"image_sequence"` |
-| `model_name` | 固定 `"yolov8s-seg"` |
+| `model_name` | 固定 `"yolov8n-seg-cracks-joints"` |
 | `wall_id` | 墙面标识（仅 `image_sequence` 模式） |
 | `timestamp` | ISO 时间戳 |
 

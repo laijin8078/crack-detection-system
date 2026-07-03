@@ -66,7 +66,7 @@ def patch_spdconv():
 def main():
     parser = argparse.ArgumentParser(description="YOLOv8-seg 模型导出")
     parser.add_argument("--model", type=str,
-                        default="runs/segment/outputs/runs/crack_detection/weights/best.pt",
+                        default="runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt",
                         help="模型权重路径")
     parser.add_argument("--format", type=str, default="onnx",
                         choices=["onnx", "openvino", "engine", "tflite"],

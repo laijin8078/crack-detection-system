@@ -67,7 +67,7 @@ class ReportGenerator:
             ['检测图像', detection_data.get('image_name', '-')],
             ['检测ID', str(detection_data.get('detection_id', '-'))],
             ['处理时间', f"{detection_data.get('processing_time', 0):.3f}秒"],
-            ['模型名称', detection_data.get('model_name', 'YOLOv8s-seg')]
+            ['模型名称', detection_data.get('model_name', 'yolov8n-seg-cracks-joints')]
         ]
 
         info_table = Table(info_data, colWidths=[5*cm, 10*cm])

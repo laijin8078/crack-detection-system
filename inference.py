@@ -108,7 +108,7 @@ def predict_single_image(model, image_path, config, save_images=True):
 
     results = model.predict(
         source=image,
-        conf=config.get('model', {}).get('conf_threshold', 0.3),
+        conf=config.get('model', {}).get('conf_threshold', 0.15),
         iou=config.get('model', {}).get('iou_threshold', 0.7),
         imgsz=config.get('model', {}).get('imgsz', 640),
         verbose=False,
@@ -163,7 +163,7 @@ def run_image_mode(model, source, config, save_json=True, save_images=True):
     ds_ratio = pp_cfg.get('mask_downsample_ratio', 4)
 
     model_cfg = config.get('model', {})
-    conf = model_cfg.get('conf_threshold', 0.3)
+    conf = model_cfg.get('conf_threshold', 0.15)
     iou = model_cfg.get('iou_threshold', 0.7)
 
     for img_path in image_files:
@@ -174,7 +174,7 @@ def run_image_mode(model, source, config, save_json=True, save_images=True):
         report = build_image_report(
             source_id=img_path.name,
             cracks=cracks,
-            model_name=config.get('model', {}).get('name', 'yolov8s-seg'),
+            model_name=config.get('model', {}).get('name', 'yolov8n-seg-cracks-joints'),
         )
         all_reports.append(report)
 
@@ -251,7 +251,7 @@ def run_video_mode(model, source, config, save_json=True, save_video=False):
     target_cls = pp_cfg.get('target_class_ids', None)
 
     model_cfg = config.get('model', {})
-    conf = model_cfg.get('conf_threshold', 0.3)
+    conf = model_cfg.get('conf_threshold', 0.15)
     iou = model_cfg.get('iou_threshold', 0.7)
 
     frame_idx = 0
@@ -320,7 +320,7 @@ def run_video_mode(model, source, config, save_json=True, save_video=False):
         source_id=Path(source).name,
         tracker_summary=tracker_summary,
         raw_detection_count=raw_total,
-        model_name=config.get('model', {}).get('name', 'yolov8s-seg'),
+        model_name=config.get('model', {}).get('name', 'yolov8n-seg-cracks-joints'),
     )
 
     print("\n" + "=" * 50)
@@ -425,7 +425,7 @@ def run_image_sequence_mode(model, source, config, wall_id=None, save_json=True,
         source_id=str(source),
         dedup_result=dedup_result,
         wall_id=wall_id,
-        model_name=config.get('model', {}).get('name', 'yolov8s-seg'),
+        model_name=config.get('model', {}).get('name', 'yolov8n-seg-cracks-joints'),
     )
 
     if save_json:
@@ -441,7 +441,7 @@ def run_image_sequence_mode(model, source, config, wall_id=None, save_json=True,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='建筑裂缝检测推理')
     parser.add_argument('--model', type=str,
-                        default='runs/segment/outputs/runs/crack_detection/weights/best.pt',
+                        default='runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt',
                         help='模型权重路径')
     parser.add_argument('--source', type=str, default='测试图片',
                         help='输入路径：图像文件、图像目录、视频文件')
@@ -502,7 +502,7 @@ if __name__ == '__main__':
     model_path = Path(args.model)
     if not model_path.exists():
         print(f"错误: 模型文件不存在: {model_path}")
-        print("请指定正确的模型路径，例如: python inference.py --model runs/segment/.../best.pt")
+        print("请指定正确的模型路径，例如: python inference.py --model runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt")
         exit(1)
     _patch_spdconv()
     model = YOLO(str(model_path))

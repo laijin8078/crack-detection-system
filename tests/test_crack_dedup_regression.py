@@ -148,7 +148,7 @@ if __name__ == "__main__":
     parser.add_argument("--case", type=str, default=None,
                         help="仅测试指定用例目录")
     parser.add_argument("--model", type=str,
-                        default="runs/segment/outputs/runs/crack_detection/weights/best.pt",
+                        default="runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt",
                         help="YOLO 模型路径")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="详细输出")

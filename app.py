@@ -27,7 +27,7 @@ import yaml
 
 app = FastAPI(
     title="建筑裂缝智能检测系统",
-    description="基于 YOLOv8s-seg 的墙面裂缝实例分割、跨图去重、DeepSeek AI 维修建议系统",
+    description="基于 yolov8n-seg-cracks-joints 的墙面裂缝实例分割、跨图去重、DeepSeek AI 维修建议系统",
     version="2.0.0",
 )
 
@@ -51,7 +51,7 @@ async def startup_event():
     """服务启动：加载 YOLO 模型和数据库"""
     global model, db
 
-    model_path = 'outputs/runs/crack_detection/weights/best.pt'
+    model_path = 'runs/segment/outputs/runs/crack_detection/weights/yolov8n-seg-cracks-joints.pt'
     if not Path(model_path).exists():
         print(f"警告: 模型文件不存在 {model_path}")
     else:
@@ -99,7 +99,7 @@ async def 健康检查():
 @app.post("/api/detect", tags=["裂缝检测"], summary="单张图像裂缝检测")
 async def 单帧裂缝检测(
     file: UploadFile = File(..., description="墙面图像文件（jpg/png）"),
-    conf_threshold: float = 0.3,
+    conf_threshold: float = 0.15,
     iou_threshold: float = 0.7,
 ):
     """
@@ -151,7 +151,7 @@ async def 单帧裂缝检测(
             })
 
         report = build_image_report(
-            source_id=file.filename, cracks=cracks, model_name='yolov8s-seg',
+            source_id=file.filename, cracks=cracks, model_name='yolov8n-seg-cracks-joints',
         )
 
         annotated = results[0].plot()
@@ -165,7 +165,7 @@ async def 单帧裂缝检测(
         detection_id = db.save_detection(
             image_name=file.filename, image_path=str(file.filename),
             detections=detections, result_path=str(result_path),
-            processing_time=processing_time, model_name='yolov8s-seg',
+            processing_time=processing_time, model_name='yolov8n-seg-cracks-joints',
         )
 
         return {
@@ -234,7 +234,7 @@ async def 批量序列检测(
                 if image is None:
                     continue
 
-                results = model.predict(source=image, conf=0.3, iou=0.7, verbose=False)
+                results = model.predict(source=image, conf=0.15, iou=0.7, verbose=False)
                 filter_results_by_class(results, [1])
                 cracks = extract_crack_features(results, image.shape, min_area_px=50, mask_downsample_ratio=4,
                                         target_class_ids=[1])
@@ -257,7 +257,7 @@ async def 批量序列检测(
             # ---- 生成去重报告 ----
             report = build_dedup_report(
                 source_id=wall_id, dedup_result=dedup_result,
-                wall_id=wall_id, model_name="yolov8s-seg",
+                wall_id=wall_id, model_name="yolov8n-seg-cracks-joints",
             )
             report_path = Path("outputs/reports") / f"去重报告_{wall_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -278,7 +278,7 @@ async def 批量序列检测(
                         "area_px": c["area_px"], "length_px_est": c["length_px_est"],
                         "orientation_angle": c["orientation_angle"],
                     } for c in dedup_result["cracks"]],
-                    processing_time=0, model_name="yolov8s-seg",
+                    processing_time=0, model_name="yolov8n-seg-cracks-joints",
                 )
             except Exception:
                 pass

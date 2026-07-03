@@ -33,7 +33,7 @@ class CrackDatabase:
                 self.conn.commit()
 
     def save_detection(self, image_name, image_path, detections, result_path=None,
-                       processing_time=None, model_name='yolov8s-seg'):
+                       processing_time=None, model_name='yolov8n-seg-cracks-joints'):
         """
         保存检测结果
 
